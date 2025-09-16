@@ -42,30 +42,22 @@ export default function VideoStudioPage() {
   const [showVolumeSlider, setShowVolumeSlider] = useState(false);
   const [volume, setVolume] = useState(50);
 
-  const [maxResolution, setMaxResolution] = useState<number>(1080);
-  const [activeResolution, setActiveResolution] = useState<number>(1080);
+  const [maxResolution, setMaxResolution] = useState<number>(360);
+  const [activeResolution, setActiveResolution] = useState<number>(360);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [showWorkspaceSelector, setShowWorkspaceSelector] = useState(false);
 
   const WORKSPACES = [
     {
-      id: "harshiile",
+      id: "xyz",
       title: "Harshiile Project",
       thumbnail: "/video-thumbnail-1.png",
-    },
-    {
-      id: "original",
-      title: "Original Content",
-      thumbnail: "/video-thumbnail-2.png",
-    },
-    {
-      id: "abc",
-      title: "ABC Production",
-      thumbnail: "/video-thumbnail-abstract-design.png",
+      maxResolution: null,
     },
   ];
+
   const [activeWorkspace, setActiveWorkspace] = useState<string>(
-    WORKSPACES[1].id
+    WORKSPACES[0].id
   );
 
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -139,68 +131,87 @@ export default function VideoStudioPage() {
   };
 
   useEffect(() => {
-    fetch(`http://localhost:3000/max-resolution/${activeWorkspace}`)
-      .then((res) => res.json())
-      .then(({ maxResolution }) => {
-        setMaxResolution(maxResolution);
-        setActiveResolution(maxResolution);
-        setResolution(`${maxResolution}p`);
-      })
-      .catch((error) => {
+    (async () => {
+      const video = videoRef.current;
+      if (!video) return;
+
+      const currentWorkspaceMaxResolution = WORKSPACES.filter(
+        (ws) => ws.id == activeWorkspace
+      )[0].maxResolution;
+
+      if (!currentWorkspaceMaxResolution) {
+        const data = await fetch(
+          `http://localhost:1234/video/max-resolution/${activeWorkspace}`
+        );
+        const {
+          result: { maxResolution },
+        } = await data.json();
+
+        console.log("Max Resolution : ", maxResolution);
+
+        WORKSPACES.map((ws) => {
+          if (ws.id == activeWorkspace) {
+            ws.maxResolution = maxResolution;
+          }
+        });
+      }
+
+      setMaxResolution(maxResolution);
+      setActiveResolution(maxResolution);
+      setResolution(`${maxResolution}p`);
+
+      const version = 1;
+      const src = `http://localhost:1234/video/playlist/${activeWorkspace}/${version}/${activeResolution}`;
+      const currentTime = video.currentTime;
+      setIsLoading(true);
+
+      try {
+        if (Hls.isSupported()) {
+          if (hlsRef.current) {
+            hlsRef.current.destroy();
+          }
+          const hls = new Hls();
+          hls.loadSource(src);
+          hls.attachMedia(video);
+          hlsRef.current = hls;
+
+          hls.on(Hls.Events.MANIFEST_PARSED, () => {
+            video.currentTime = currentTime;
+            if (isPlaying) {
+              video.play().catch(() => {});
+            }
+            setIsLoading(false);
+          });
+
+          hls.on(Hls.Events.ERROR, (_, data) => {
+            console.log("[v0] HLS error:", data);
+            setIsLoading(false);
+          });
+        }
+
+        const handlePlay = () => setIsPlaying(true);
+        const handlePause = () => setIsPlaying(false);
+        const handleTimeUpdate = () => setCurrentTime(video.currentTime);
+        const handleLoadedMetadata = () => setDuration(video.duration);
+
+        video.addEventListener("play", handlePlay);
+        video.addEventListener("pause", handlePause);
+        video.addEventListener("timeupdate", handleTimeUpdate);
+        video.addEventListener("loadedmetadata", handleLoadedMetadata);
+
+        return () => {
+          video.removeEventListener("play", handlePlay);
+          video.removeEventListener("pause", handlePause);
+          video.removeEventListener("timeupdate", handleTimeUpdate);
+          video.removeEventListener("loadedmetadata", handleLoadedMetadata);
+        };
+      } catch (error) {
         console.log(
           "[v0] Failed to fetch max resolution, using defaults:",
           error
         );
-      });
-  }, [activeWorkspace]);
-
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
-
-    const src = `http://localhost:3000/playlist/${activeWorkspace}/${activeResolution}`;
-    const currentTime = video.currentTime;
-    setIsLoading(true);
-
-    if (Hls.isSupported()) {
-      if (hlsRef.current) {
-        hlsRef.current.destroy();
       }
-      const hls = new Hls();
-      hls.loadSource(src);
-      hls.attachMedia(video);
-      hlsRef.current = hls;
-
-      hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        video.currentTime = currentTime;
-        if (isPlaying) {
-          video.play().catch(() => {});
-        }
-        setIsLoading(false);
-      });
-
-      hls.on(Hls.Events.ERROR, (_, data) => {
-        console.log("[v0] HLS error:", data);
-        setIsLoading(false);
-      });
-    }
-
-    const handlePlay = () => setIsPlaying(true);
-    const handlePause = () => setIsPlaying(false);
-    const handleTimeUpdate = () => setCurrentTime(video.currentTime);
-    const handleLoadedMetadata = () => setDuration(video.duration);
-
-    video.addEventListener("play", handlePlay);
-    video.addEventListener("pause", handlePause);
-    video.addEventListener("timeupdate", handleTimeUpdate);
-    video.addEventListener("loadedmetadata", handleLoadedMetadata);
-
-    return () => {
-      video.removeEventListener("play", handlePlay);
-      video.removeEventListener("pause", handlePause);
-      video.removeEventListener("timeupdate", handleTimeUpdate);
-      video.removeEventListener("loadedmetadata", handleLoadedMetadata);
-    };
+    })();
   }, [activeResolution, activeWorkspace]);
 
   useEffect(() => {
