@@ -1,7 +1,6 @@
 "use client";
 
 import type React from "react";
-import thumbnailSvg from "./793430-final.jpg";
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -26,8 +25,9 @@ import {
   X,
   Video,
 } from "lucide-react";
-import Hls from "hls.js";
 import Image from "next/image";
+import bannerImage from "./793430-final.jpg";
+import Hls from "hls.js";
 
 export default function VideoStudioPage() {
   const [isPlaying, setIsPlaying] = useState(false);
@@ -37,7 +37,6 @@ export default function VideoStudioPage() {
   const [selectedVersion, setSelectedVersion] = useState("Version 1");
   const [showSettings, setShowSettings] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState("1x");
-  const [resolution, setResolution] = useState("1080p");
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showVolumeSlider, setShowVolumeSlider] = useState(false);
   const [volume, setVolume] = useState(50);
@@ -49,8 +48,14 @@ export default function VideoStudioPage() {
 
   const WORKSPACES = [
     {
-      id: "xyz",
+      id: "harshiile",
       title: "Harshiile Project",
+      thumbnail: "/video-thumbnail-1.png",
+      maxResolution: null,
+    },
+    {
+      id: "escobar",
+      title: "Pablo Project",
       thumbnail: "/video-thumbnail-1.png",
       maxResolution: null,
     },
@@ -124,12 +129,6 @@ export default function VideoStudioPage() {
     setShowWorkspaceSelector(false);
   };
 
-  const handleResolutionChange = (newResolution: string) => {
-    setResolution(newResolution);
-    const newResNumber = Number.parseInt(newResolution.replace("p", ""));
-    setActiveResolution(newResNumber);
-  };
-
   useEffect(() => {
     (async () => {
       const video = videoRef.current;
@@ -141,27 +140,19 @@ export default function VideoStudioPage() {
 
       if (!currentWorkspaceMaxResolution) {
         const data = await fetch(
-          `http://localhost:1234/video/max-resolution/${activeWorkspace}`
+          `http://localhost:1234/api/v1/video/max-resolution/${activeWorkspace}`
         );
+
         const {
           result: { maxResolution },
         } = await data.json();
 
-        console.log("Max Resolution : ", maxResolution);
-
-        WORKSPACES.map((ws) => {
-          if (ws.id == activeWorkspace) {
-            ws.maxResolution = maxResolution;
-          }
-        });
-      }
-
-      setMaxResolution(maxResolution);
-      setActiveResolution(maxResolution);
-      setResolution(`${maxResolution}p`);
+        setMaxResolution(maxResolution);
+      } else setMaxResolution(currentWorkspaceMaxResolution);
 
       const version = 1;
-      const src = `http://localhost:1234/video/playlist/${activeWorkspace}/${version}/${activeResolution}`;
+      const src = `http://localhost:1234/api/v1/video/playlist/${activeWorkspace}/${version}/${activeResolution}`;
+
       const currentTime = video.currentTime;
       setIsLoading(true);
 
@@ -175,7 +166,7 @@ export default function VideoStudioPage() {
           hls.attachMedia(video);
           hlsRef.current = hls;
 
-          hls.on(Hls.Events.MANIFEST_PARSED, () => {
+          hls.on(Hls.Events.FRAG_LOADED, () => {
             video.currentTime = currentTime;
             if (isPlaying) {
               video.play().catch(() => {});
@@ -226,7 +217,7 @@ export default function VideoStudioPage() {
 
   useEffect(() => {
     setShowSettings(false);
-  }, [playbackSpeed, resolution]);
+  }, [playbackSpeed, activeResolution]);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -254,9 +245,8 @@ export default function VideoStudioPage() {
         <nav className="h-[8vh] bg-black sticky top-0 z-50 shadow-2xl border-b border-gray-800/50">
           <div className="h-full px-6 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-6 h-6 bg-orange-500 rounded-lg"></div>
-              <span className="text-lg font-bold text-orange-500">
-                CinemaStudio
+              <span className="text-lg font-bold text-[#00D4AA]">
+                VC Engine
               </span>
             </div>
             <div className="flex items-center gap-4">
@@ -264,12 +254,12 @@ export default function VideoStudioPage() {
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                 <Input
                   placeholder="Search projects..."
-                  className="w-60 pl-10 bg-gray-900 border-gray-700 focus:border-orange-500 transition-all duration-300 rounded-full text-sm"
+                  className="w-60 pl-10 bg-gray-900 border-gray-700 focus:border-[#00D4AA] transition-all duration-300 rounded-full text-sm"
                 />
               </div>
-              <Avatar className="w-8 h-8 ring-2 ring-orange-500/30 hover:ring-orange-500/60 transition-all duration-300 cursor-pointer">
+              <Avatar className="w-8 h-8 ring-2 ring-[#00D4AA]/30 hover:ring-[#00D4AA]/60 transition-all duration-300 cursor-pointer">
                 <AvatarImage src="/placeholder-user.png" />
-                <AvatarFallback className="bg-orange-500 text-white font-semibold text-sm">
+                <AvatarFallback className="bg-[#00D4AA] text-white font-semibold text-sm">
                   JD
                 </AvatarFallback>
               </Avatar>
@@ -287,7 +277,7 @@ export default function VideoStudioPage() {
             <div className="flex items-center gap-2">
               <span className="text-gray-400 font-medium">john.doe</span>
               <span className="text-gray-600">/</span>
-              <span className="text-orange-500 font-semibold">
+              <span className="text-[#00D4AA] font-semibold">
                 {activeWorkspace}
               </span>
             </div>
@@ -296,7 +286,7 @@ export default function VideoStudioPage() {
                 variant="outline"
                 size="sm"
                 onClick={() => setShowWorkspaceSelector(true)}
-                className="bg-transparent border-gray-700 hover:border-orange-500 hover:bg-orange-500/10 transition-all duration-300 text-white"
+                className="bg-transparent border-gray-700 hover:border-[#00D4AA] hover:bg-[#00D4AA]/10 text-white hover:text-white transition-all duration-300 hover:cursor-pointer"
               >
                 <Video className="w-4 h-4 mr-2" />
                 Change Video
@@ -304,7 +294,7 @@ export default function VideoStudioPage() {
               <Button
                 variant="outline"
                 size="sm"
-                className="bg-transparent border-gray-700 hover:border-orange-500 hover:bg-orange-500/10 transition-all duration-300 text-white"
+                className="bg-transparent border-gray-700 hover:border-[#00D4AA] hover:bg-[#00D4AA]/10 text-white hover:text-white transition-all duration-300 hover:cursor-pointer"
               >
                 <Crop className="w-4 h-4 mr-2" />
                 Crop
@@ -312,7 +302,7 @@ export default function VideoStudioPage() {
               <Button
                 variant="outline"
                 size="sm"
-                className="bg-transparent border-gray-700 hover:border-orange-500 hover:bg-orange-500/10 transition-all duration-300 text-white"
+                className="bg-transparent border-gray-700 hover:border-[#00D4AA] hover:bg-[#00D4AA]/10 text-white hover:text-white transition-all duration-300 hover:cursor-pointer"
               >
                 <Download className="w-4 h-4 mr-2" />
                 Download
@@ -325,7 +315,7 @@ export default function VideoStudioPage() {
           <AnimatePresence>
             {showWorkspaceSelector && (
               <motion.div
-                className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-end justify-center"
+                className="fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex items-end justify-center"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
@@ -345,8 +335,8 @@ export default function VideoStudioPage() {
                   }}
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <div className="bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 backdrop-blur-xl border-t border-gray-700/50 shadow-2xl flex flex-col">
-                    <div className="p-4 border-b border-gray-700/50">
+                  <div className="bg-black/80 backdrop-blur-xl border-t border-gray-700/30 shadow-2xl flex flex-col">
+                    <div className="p-4 border-b border-gray-700/30 bg-black/40 backdrop-blur-sm">
                       <div className="flex items-center justify-between">
                         <h3 className="text-lg font-semibold text-white">
                           Select Video
@@ -362,17 +352,16 @@ export default function VideoStudioPage() {
                       </div>
                     </div>
 
-                    <div className="p-6">
+                    <div className="p-6 bg-black/30 backdrop-blur-lg">
                       <div className="flex gap-6">
-                        {WORKSPACES.map((workspace, index) => (
-                          <>
-                            {" "}
-                            {workspace.id != activeWorkspace && (
+                        {WORKSPACES.map(
+                          (workspace, index) =>
+                            workspace.id !== activeWorkspace && (
                               <motion.div
                                 key={workspace.id}
                                 className={`cursor-pointer group flex-shrink-0 w-72 ${
                                   activeWorkspace === workspace.id
-                                    ? "ring-2 ring-orange-500"
+                                    ? "ring-2 ring-[#00D4AA]"
                                     : ""
                                 }`}
                                 initial={{ opacity: 0, x: 50 }}
@@ -384,17 +373,17 @@ export default function VideoStudioPage() {
                                 whileHover={{ scale: 1.02 }}
                                 whileTap={{ scale: 0.98 }}
                               >
-                                <div className="bg-gray-800/60 rounded-lg overflow-hidden border border-gray-700/50 group-hover:border-orange-500/50 transition-all duration-300">
+                                <div className="bg-black/40 backdrop-blur-md rounded-lg overflow-hidden border border-gray-700/40 group-hover:border-[#00D4AA]/50 transition-all duration-300 shadow-lg">
                                   <div className="flex flex-col">
                                     <div className="relative w-full h-32">
                                       <Image
-                                        src={thumbnailSvg}
+                                        src={bannerImage}
                                         alt={workspace.title}
-                                        key={workspace.title}
-                                        className="w-full h-full object-cover"
+                                        fill
+                                        className="object-cover"
                                       />
                                     </div>
-                                    <div className="p-4">
+                                    <div className="p-4 bg-black/20 backdrop-blur-sm">
                                       <h4 className="text-white font-medium text-base mb-2">
                                         {workspace.title}
                                       </h4>
@@ -402,9 +391,8 @@ export default function VideoStudioPage() {
                                   </div>
                                 </div>
                               </motion.div>
-                            )}
-                          </>
-                        ))}
+                            )
+                        )}
                       </div>
                     </div>
                   </div>
@@ -416,7 +404,7 @@ export default function VideoStudioPage() {
           <motion.div
             className={`relative ${
               isFullscreen ? "w-full h-full" : "w-[85vw] h-[78vh]"
-            } bg-black rounded-2xl overflow-hidden shadow-2xl `}
+            } bg-black rounded-2xl overflow-hidden shadow-2xl border border-gray-800/30`}
             onMouseEnter={() => setShowControls(true)}
             onMouseLeave={() => setShowControls(false)}
             whileHover={{ scale: isFullscreen ? 1 : 1.01 }}
@@ -435,7 +423,7 @@ export default function VideoStudioPage() {
                     <div className="relative">
                       <div className="w-16 h-16 border-4 border-white/10 rounded-full"></div>
                       <motion.div
-                        className="absolute top-0 left-0 w-16 h-16 border-4 border-transparent border-t-orange-500 border-r-orange-400 rounded-full"
+                        className="absolute top-0 left-0 w-16 h-16 border-4 border-transparent border-t-[#00D4AA] border-r-[#00D4AA]/70 rounded-full"
                         animate={{ rotate: 360 }}
                         transition={{
                           duration: 1,
@@ -457,16 +445,25 @@ export default function VideoStudioPage() {
               className="w-full h-full bg-gradient-to-br from-gray-900 to-black"
               style={{ aspectRatio: "16/9" }}
             />
+            <div className="w-full h-full bg-gradient-to-br from-gray-900 to-black flex items-center justify-center">
+              <div className="text-center">
+                <Video className="w-24 h-24 text-gray-600 mx-auto mb-4" />
+                <p className="text-gray-400 text-lg">Video Player</p>
+                <p className="text-gray-500 text-sm mt-2">
+                  {currentWorkspace?.title || "Select a video to play"}
+                </p>
+              </div>
+            </div>
 
             {!isPlaying && !isLoading && (
               <div className="absolute inset-0 flex items-center justify-center">
                 <motion.button
-                  className="w-24 h-24 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center"
+                  className="w-24 h-24 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center border border-[#00D4AA]/30 hover:border-[#00D4AA]/60 transition-all duration-300"
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={handlePlayPause}
                 >
-                  <Play className="w-12 h-12 text-white ml-1" />
+                  <Play className="w-12 h-12 text-[#00D4AA] ml-1" />
                 </motion.button>
               </div>
             )}
@@ -499,7 +496,7 @@ export default function VideoStudioPage() {
                       <DropdownMenuTrigger asChild>
                         <Button
                           variant="outline"
-                          className="bg-black/70 backdrop-blur-sm border-gray-600 hover:border-orange-500 text-white"
+                          className="bg-black/70 backdrop-blur-sm border-gray-600 hover:border-[#00D4AA] text-white"
                         >
                           {selectedVersion}
                           <ChevronDown className="w-4 h-4 ml-2 text-white" />
@@ -508,13 +505,13 @@ export default function VideoStudioPage() {
                       <DropdownMenuContent className="bg-gray-900/95 backdrop-blur-sm border-gray-700">
                         <DropdownMenuItem
                           onClick={() => setSelectedVersion("Version 1")}
-                          className="text-white hover:bg-orange-500/20 hover:text-orange-500"
+                          className="text-white hover:bg-[#00D4AA]/20 hover:text-[#00D4AA]"
                         >
                           Version 1
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           onClick={() => setSelectedVersion("Version 2")}
-                          className="text-white hover:bg-orange-500/20 hover:text-orange-500"
+                          className="text-white hover:bg-[#00D4AA]/20 hover:text-[#00D4AA]"
                         >
                           Version 2
                         </DropdownMenuItem>
@@ -556,7 +553,7 @@ export default function VideoStudioPage() {
                           onChange={handleSeek}
                           className="w-full h-1 bg-gray-600 rounded-lg appearance-none cursor-pointer"
                           style={{
-                            background: `linear-gradient(to right, #f97316 0%, #f97316 ${
+                            background: `linear-gradient(to right, #00D4AA 0%, #00D4AA ${
                               (currentTime / duration) * 100
                             }%, #4b5563 ${
                               (currentTime / duration) * 100
@@ -595,7 +592,7 @@ export default function VideoStudioPage() {
                                     className="w-1 h-20 bg-gray-600 rounded-lg appearance-none cursor-pointer"
                                     style={{
                                       WebkitAppearance: "slider-vertical",
-                                      background: `linear-gradient(to top, #f97316 0%, #f97316 ${volume}%, #4b5563 ${volume}%, #4b5563 100%)`,
+                                      background: `linear-gradient(to top, #00D4AA 0%, #00D4AA ${volume}%, #4b5563 ${volume}%, #4b5563 100%)`,
                                     }}
                                   />
                                 </div>
@@ -702,9 +699,9 @@ export default function VideoStudioPage() {
                         {availableResolutions.reverse().map((res) => (
                           <button
                             key={res}
-                            onClick={() => handleResolutionChange(`${res}p`)}
+                            onClick={() => setActiveResolution(res)}
                             className={`w-full text-left px-3 py-1.5 rounded-md transition-all duration-200 text-sm ${
-                              resolution === `${res}p`
+                              activeResolution === res
                                 ? "bg-gray-800/70 backdrop-blur-sm text-white border border-gray-600"
                                 : "text-gray-300 hover:bg-gray-800/30 hover:text-white"
                             }`}
@@ -712,16 +709,6 @@ export default function VideoStudioPage() {
                             {res}p
                           </button>
                         ))}
-                        <button
-                          onClick={() => handleResolutionChange("Auto")}
-                          className={`w-full text-left px-3 py-1.5 rounded-md transition-all duration-200 text-sm ${
-                            resolution === "Auto"
-                              ? "bg-gray-800/70 backdrop-blur-sm text-white border border-gray-600"
-                              : "text-gray-300 hover:bg-gray-800/30 hover:text-white"
-                          }`}
-                        >
-                          Auto
-                        </button>
                       </div>
                     </div>
                   </div>
