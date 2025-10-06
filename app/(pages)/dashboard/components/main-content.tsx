@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import axios from "axios"
 
 interface MainContentProps {
   activeTab: string
@@ -16,6 +17,18 @@ export function MainContent({ activeTab }: MainContentProps) {
   const [searchQuery, setSearchQuery] = useState("")
   const [sortBy, setSortBy] = useState("updated")
   const [isTransitioning, setIsTransitioning] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+
+  type Workspace = {
+    id: string
+    name: string
+    type: string
+    createdAt: string
+    banner: string | null
+    Branch: { id: string; name: string }[]
+  }
+
+  const [workspaces, setWorkspaces] = useState<Workspace[]>([])
 
   useEffect(() => {
     setIsTransitioning(true)
@@ -23,127 +36,30 @@ export function MainContent({ activeTab }: MainContentProps) {
     return () => clearTimeout(timer)
   }, [activeTab])
 
-  const pinnedWorkspaces = [
-    {
-      name: "intro-animation.mp4",
-      description: "Animated logo introduction for brand videos",
-      language: "TypeScript",
-      stars: 124,
-      forks: 23,
-      updated: "2 days ago",
-      status: "active",
-      videoThumbnail: "/images/intro-animation.png",
-      hasVideo: true,
-      fileSize: "12.4 MB",
-      owner: "utuvoih",
-      duration: "0:15",
-    },
-    {
-      name: "product-showcase.mp4",
-      description: "Interactive product demonstration and features",
-      language: "Python",
-      stars: 89,
-      forks: 15,
-      updated: "1 day ago",
-      status: "active",
-      videoThumbnail: "/product-showcase.png",
-      hasVideo: true,
-      fileSize: "8.7 MB",
-      owner: "designpro",
-      duration: "0:45",
-    },
-    {
-      name: "user-onboarding.mp4",
-      description: "Complete user onboarding flow walkthrough",
-      language: "JavaScript",
-      stars: 67,
-      forks: 12,
-      updated: "3 days ago",
-      status: "archived",
-      videoThumbnail: "/user-onboarding.jpg",
-      hasVideo: true,
-      fileSize: "15.2 MB",
-      owner: "uxmaster",
-      duration: "1:20",
-    },
-  ]
+  // Fetch workspaces from backend
+  useEffect(() => {
+    const fetchWorkspaces = async () => {
+      try {
+        setIsLoading(true)
+        const userId = "21841b57-87b4-410d-8c48-aa4d95582772"
+        const { data: { result: { workspaces } } } = await axios.get(`http://localhost:1234/api/v1/workspace/${userId}`, { withCredentials: true })
 
-  const allRepositories = [
-    ...pinnedWorkspaces,
-    {
-      name: "Portfolio Website",
-      description: "Personal portfolio built with Next.js",
-      language: "TypeScript",
-      stars: 45,
-      forks: 8,
-      updated: "1 week ago",
-      status: "active",
-      videoThumbnail: "/portfolio-website-showcase.jpg",
-      hasVideo: true,
-      fileSize: "5.6 MB",
-      owner: "john_doe",
-      duration: "0:30",
-    },
-    {
-      name: "Data Visualization Tool",
-      description: "Interactive charts and graphs library",
-      language: "JavaScript",
-      stars: 156,
-      forks: 34,
-      updated: "2 weeks ago",
-      status: "active",
-      videoThumbnail: "/data-visualization-charts.png",
-      hasVideo: true,
-      fileSize: "7.8 MB",
-      owner: "jane_smith",
-      duration: "1:00",
-    },
-    {
-      name: "Authentication Service",
-      description: "Microservice for user authentication",
-      language: "Go",
-      stars: 78,
-      forks: 19,
-      updated: "1 month ago",
-      status: "active",
-      videoThumbnail: "/authentication-service-demo.jpg",
-      hasVideo: true,
-      fileSize: "9.1 MB",
-      owner: "alice_jones",
-      duration: "0:45",
-    },
-  ]
 
-  const starredRepositories = [
-    {
-      name: "intro-animation.mp4",
-      description: "Animated logo introduction for brand videos",
-      language: "TypeScript",
-      stars: 124,
-      forks: 23,
-      updated: "2 days ago",
-      status: "active",
-      videoThumbnail: "/images/intro-animation.png",
-      hasVideo: true,
-      fileSize: "12.4 MB",
-      owner: "utuvoih",
-      duration: "0:15",
-    },
-    {
-      name: "product-showcase.mp4",
-      description: "Interactive product demonstration and features",
-      language: "Python",
-      stars: 89,
-      forks: 15,
-      updated: "1 day ago",
-      status: "active",
-      videoThumbnail: "/product-showcase.png",
-      hasVideo: true,
-      fileSize: "8.7 MB",
-      owner: "designpro",
-      duration: "0:45",
-    },
-  ]
+        setWorkspaces(workspaces)
+      } catch (e) {
+        setWorkspaces([])
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    fetchWorkspaces()
+
+  }, [])
+
+  // Derived datasets from fetched workspaces
+  const allRepositories: Workspace[] = workspaces
+
+  const starredRepositories: Workspace[] = []
 
   const filteredStarredRepositories = starredRepositories.filter((starredRepo) =>
     allRepositories.some((repo) => repo.name === starredRepo.name),
@@ -153,68 +69,14 @@ export function MainContent({ activeTab }: MainContentProps) {
     <div
       className={`space-y-6 transition-all duration-500 ${isTransitioning ? "opacity-0 translate-x-4" : "opacity-100 translate-x-0"}`}
     >
-      {/* Pinned Repositories */}
-      <div>
-        <h3 className="text-lg font-semibold mb-4 flex items-center text-foreground">
-          <Star className="w-5 h-5 mr-2 text-primary" />
-          Pinned Workspaces
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {pinnedWorkspaces.slice(0, 4).map((workspace, index) => (
-            <Card
-              key={workspace.name}
-              className="hover:shadow-lg hover:shadow-primary/10 transition-all duration-300 hover:scale-[1.02] cursor-pointer group bg-card border-border"
-              style={{ animationDelay: `${index * 100}ms` }}
-            >
-              <CardContent className="p-4">
-                <div className="flex items-start space-x-3">
-                  {/* Video Thumbnail */}
-                  <div className="relative flex-shrink-0">
-                    <div className="w-20 h-14 rounded-lg overflow-hidden bg-secondary/50 group-hover:ring-2 ring-primary/50 transition-all duration-300">
-                      <img
-                        src={workspace.videoThumbnail || "/placeholder.svg"}
-                        alt={`${workspace.name} demo`}
-                        className="w-full h-full object-cover"
-                      />
-                      <div className="absolute inset-0 bg-black/30 group-hover:bg-black/20 transition-all duration-300 flex items-center justify-center">
-                        <Play className="w-4 h-4 text-white opacity-80 group-hover:opacity-100 transition-opacity" />
-                      </div>
-                    </div>
-                    <div className="absolute bottom-1 right-1 bg-black/70 text-white text-xs px-1 rounded">
-                      {workspace.duration}
-                    </div>
-                  </div>
-
-                  {/* Video Info */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex items-center space-x-2 min-w-0">
-                        <FileIcon className="w-4 h-4 text-primary flex-shrink-0" />
-                        <h3 className="text-sm font-medium text-primary group-hover:text-primary/80 transition-colors truncate">
-                          {workspace.name}
-                        </h3>
-                      </div>
-                    </div>
-
-                    <p className="text-xs text-muted-foreground mb-3 line-clamp-2">{workspace.description}</p>
-
-                    <div className="flex items-center justify-between text-xs text-muted-foreground">
-                      <div className="flex items-center space-x-2">
-                        <Clock className="w-3 h-3" />
-                        <span>{workspace.updated}</span>
-                      </div>
-                      <div className="flex items-center space-x-3">
-                        <span className="text-primary">{workspace.fileSize}</span>
-                        <span className="text-primary font-medium">{workspace.owner}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+      {isLoading ? (
+        <div className="flex items-center justify-center py-16">
+          <div className="h-10 w-10 rounded-full border-2 border-emerald-500 border-t-transparent animate-spin" />
         </div>
-      </div>
+      ) : (
+        <div> Pinned Repos</div>
+      )
+      }
 
       {/* Recent Activity */}
       <div>
@@ -248,7 +110,7 @@ export function MainContent({ activeTab }: MainContentProps) {
           </CardContent>
         </Card>
       </div>
-    </div>
+    </div >
   )
 
   const renderRepositories = () => (
@@ -279,11 +141,11 @@ export function MainContent({ activeTab }: MainContentProps) {
         </Select>
       </div>
 
-      {/* Repository List */}
+      {/* Workspace List */}
       <div className="space-y-4">
-        {allRepositories.map((repo, index) => (
+        {workspaces.map((ws, index) => (
           <Card
-            key={repo.name}
+            key={(ws as any).id ?? ws.name}
             className="hover:shadow-lg hover:shadow-primary/10 transition-all duration-300 hover:scale-[1.01] cursor-pointer group bg-card border-border"
             style={{ animationDelay: `${index * 50}ms` }}
           >
@@ -293,16 +155,13 @@ export function MainContent({ activeTab }: MainContentProps) {
                 <div className="relative flex-shrink-0">
                   <div className="w-24 h-16 rounded-lg overflow-hidden bg-secondary/50 group-hover:ring-2 ring-primary/50 transition-all duration-300">
                     <img
-                      src={repo.videoThumbnail || "/placeholder.svg"}
-                      alt={`${repo.name} demo`}
+                      src={`http://localhost:1234/api/v1/get-image-content/banner/${ws.banner}` || "/placeholder.svg"}
+                      alt={`${ws.name} banner`}
                       className="w-full h-full object-cover"
                     />
                     <div className="absolute inset-0 bg-black/30 group-hover:bg-black/20 transition-all duration-300 flex items-center justify-center">
                       <Play className="w-4 h-4 text-white opacity-80 group-hover:opacity-100 transition-opacity" />
                     </div>
-                  </div>
-                  <div className="absolute bottom-1 right-1 bg-black/70 text-white text-xs px-1 rounded">
-                    {repo.duration}
                   </div>
                 </div>
 
@@ -312,13 +171,10 @@ export function MainContent({ activeTab }: MainContentProps) {
                     <div className="flex items-center space-x-2">
                       <FileIcon className="w-4 h-4 text-primary" />
                       <h3 className="font-semibold text-primary group-hover:text-primary/80 transition-colors">
-                        {repo.name}
+                        {ws.name}
                       </h3>
-                      <Badge
-                        variant={repo.status === "active" ? "default" : "secondary"}
-                        className="text-xs bg-primary/20 text-primary border-primary/30"
-                      >
-                        {repo.status}
+                      <Badge variant="secondary" className="text-xs bg-primary/20 text-primary border-primary/30">
+                        {(ws as any).type}
                       </Badge>
                     </div>
                     <Button
@@ -329,27 +185,20 @@ export function MainContent({ activeTab }: MainContentProps) {
                       <ExternalLink className="w-4 h-4" />
                     </Button>
                   </div>
-
-                  <p className="text-sm text-muted-foreground mb-3">{repo.description}</p>
-
                   <div className="flex items-center justify-between text-xs text-muted-foreground">
                     <div className="flex items-center space-x-4">
                       <div className="flex items-center space-x-1">
                         <Clock className="w-3 h-3" />
-                        <span>{repo.updated}</span>
+                        <span>{new Date((ws as any).createdAt || Date.now()).toLocaleDateString()}</span>
                       </div>
-                      <span className="flex items-center">
-                        <Star className="w-3 h-3 mr-1" />
-                        {repo.stars}
-                      </span>
-                      <span className="flex items-center">
-                        <GitFork className="w-3 h-3 mr-1" />
-                        {repo.forks}
-                      </span>
                     </div>
                     <div className="flex items-center space-x-3">
-                      <span className="text-primary">{repo.fileSize}</span>
-                      <span className="text-primary font-medium">{repo.owner}</span>
+                      <span className="text-primary">{((ws as any).Branch || []).length} branches</span>
+                      {((ws as any).Branch || []).length > 0 && (
+                        <span className="text-primary font-medium truncate max-w-[200px]">
+                          {((ws as any).Branch || []).map((b: any) => b.name).join(", ")}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -385,7 +234,7 @@ export function MainContent({ activeTab }: MainContentProps) {
                 <div className="relative flex-shrink-0">
                   <div className="w-24 h-16 rounded-lg overflow-hidden bg-secondary/50 group-hover:ring-2 ring-primary/50 transition-all duration-300">
                     <img
-                      src={repo.videoThumbnail || "/placeholder.svg"}
+                      src={repo.banner || "/placeholder.svg"}
                       alt={`${repo.name} demo`}
                       className="w-full h-full object-cover"
                     />
@@ -394,7 +243,7 @@ export function MainContent({ activeTab }: MainContentProps) {
                     </div>
                   </div>
                   <div className="absolute bottom-1 right-1 bg-black/70 text-white text-xs px-1 rounded">
-                    {repo.duration}
+                    10min
                   </div>
                 </div>
 
@@ -406,12 +255,12 @@ export function MainContent({ activeTab }: MainContentProps) {
                       <h3 className="font-semibold text-primary group-hover:text-primary/80 transition-colors">
                         {repo.name}
                       </h3>
-                      <Badge
+                      {/* <Badge
                         variant={repo.status === "active" ? "default" : "secondary"}
                         className="text-xs bg-primary/20 text-primary border-primary/30"
                       >
                         {repo.status}
-                      </Badge>
+                      </Badge> */}
                     </div>
                     <Button
                       variant="ghost"
@@ -422,9 +271,9 @@ export function MainContent({ activeTab }: MainContentProps) {
                     </Button>
                   </div>
 
-                  <p className="text-sm text-muted-foreground mb-3">{repo.description}</p>
+                  {/* <p className="text-sm text-muted-foreground mb-3">{repo.description}</p> */}
 
-                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  {/* <div className="flex items-center justify-between text-xs text-muted-foreground">
                     <div className="flex items-center space-x-4">
                       <div className="flex items-center space-x-1">
                         <Clock className="w-3 h-3" />
@@ -443,7 +292,7 @@ export function MainContent({ activeTab }: MainContentProps) {
                       <span className="text-primary">{repo.fileSize}</span>
                       <span className="text-primary font-medium">{repo.owner}</span>
                     </div>
-                  </div>
+                  </div> */}
                 </div>
               </div>
             </CardContent>

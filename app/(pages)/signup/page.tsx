@@ -140,7 +140,6 @@ export default function SignupPage() {
                 avatarUrl = await uploadAvatar(selectedFile);
             }
 
-            // TODO: Implement actual signup logic with avatar URL
             console.log("Signup data:", { ...formData, avatar: avatarUrl });
 
             await axios.post("http://localhost:1234/api/v1/auth/signup", {
@@ -174,14 +173,21 @@ export default function SignupPage() {
             try {
                 const {
                     data: {
-                        result: { uploadUrl, avatarKey },
+                        result: { uploadUrl, fileKey },
                     },
                 } = await axios.post(
-                    `http://localhost:1234/api/v1/auth/upload-avatar`,
+                    `http://localhost:1234/api/v1/get-signed-url`,
                     {
-                        contentType: selectedFile?.type
-                    }
+                        contentType: selectedFile?.type,
+                        type: "avatar"
+                    },
+                    { withCredentials: true }
                 );
+
+                console.log({
+                    uploadUrl,
+                    fileKey
+                });
 
 
                 const { data } = await axios.put(uploadUrl, selectedFile, {
@@ -196,7 +202,7 @@ export default function SignupPage() {
                     },
                 });
 
-                resolve(avatarKey)
+                resolve(fileKey)
             }
             catch (error) {
                 reject()
