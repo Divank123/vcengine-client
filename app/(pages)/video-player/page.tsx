@@ -59,6 +59,18 @@ export default function VideoStudioPage() {
       thumbnail: "/video-thumbnail-1.png",
       maxResolution: null,
     },
+    {
+      id: "op",
+      title: "Krunal Project",
+      thumbnail: "/video-thumbnail-1.png",
+      maxResolution: null,
+    },
+    {
+      id: "vcengine",
+      title: "VC Project",
+      thumbnail: "/video-thumbnail-1.png",
+      maxResolution: null,
+    },
   ];
 
   const [activeWorkspace, setActiveWorkspace] = useState<string>(

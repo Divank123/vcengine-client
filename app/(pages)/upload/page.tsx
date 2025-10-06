@@ -33,14 +33,14 @@ export default function VideoUploadPage() {
     try {
       const {
         data: {
-          result: { uploadUrl },
+          result:{uploadUrl},
         },
       } = await axios.post(
-        `http://localhost:1234/api/v1/video/get-signed-url/video`,
+        `http://localhost:1234/api/v1/video/upload`,
         {
-          title,
-          workspace,
-          fileOriginalName: selectedFile.name,
+          commitMessage: "Init Video",
+          branch: "main", // default branch
+          workspace:"9736831a-2072-4570-8444-1fe65c510ac2", // should be workspace id, not just name
           contentType: selectedFile.type,
         }
       );
@@ -56,6 +56,7 @@ export default function VideoUploadPage() {
           }
         },
       });
+      
       setIsUploading(false);
       setUploadProgress(100);
     } catch (error) {
@@ -242,7 +243,7 @@ export default function VideoUploadPage() {
                       </video>
 
                       {/* Hover overlay with Replace Video button */}
-                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                      {/* <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
                         <label className="cursor-pointer">
                           <input
                             type="file"
@@ -257,7 +258,7 @@ export default function VideoUploadPage() {
                             Replace Video
                           </Button>
                         </label>
-                      </div>
+                      </div> */}
                     </div>
                   ) : (
                     <label className="w-full h-48 border-2 border-dashed border-gray-600 rounded-xl flex items-center justify-center hover:border-[#00D4AA] hover:bg-[#00D4AA]/5 transition-all duration-300 group hover:scale-105 cursor-pointer">
@@ -306,11 +307,11 @@ export default function VideoUploadPage() {
                     />
 
                     {thumbnailPreviewUrl ? (
-                      <div className="w-full h-72 rounded-xl overflow-hidden border border-[#00D4AA]/50 shadow-[0_0_30px_rgba(0,212,170,0.25)] relative group transition-all duration-700">
+                      <div className="w-full h-72 rounded-xl  overflow-hidden border border-[#00D4AA]/50 shadow-[0_0_30px_rgba(0,212,170,0.25)] relative group transition-all duration-700">
                         <img
                           src={thumbnailPreviewUrl || "/placeholder.svg"}
                           alt="Thumbnail preview"
-                          className="w-full h-full object-cover"
+                          className="w-full h-full object-contain"
                         />
                       </div>
                     ) : (
