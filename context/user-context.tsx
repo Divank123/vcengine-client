@@ -1,37 +1,21 @@
 "use client"
 
-import React, { createContext, useContext, useMemo, useState } from "react";
+import React, { createContext, useContext } from "react"
 
-export type AppUser = {
-    id: string;
-    name?: string | null;
-    username?: string | null;
-} | null;
-
-export type UserContextValue = {
-    user: AppUser;
-    setUser: (user: AppUser) => void;
-    clearUser: () => void;
-};
-
-const UserContext = createContext<UserContextValue | undefined>(undefined);
-
-export function UserProvider({ children }: { children: React.ReactNode }) {
-    const [user, setUser] = useState<AppUser>(null);
-
-    const value = useMemo<UserContextValue>(() => ({
-        user,
-        setUser,
-        clearUser: () => setUser(null),
-    }), [user]);
-
-    return <UserContext.Provider value={value}>{children}</UserContext.Provider>;
+type User = Record<string, any> | null
+type UserContextValue = {
+    user: User
+    setUser: (u: User) => void
 }
 
-export function useUser() {
-    const ctx = useContext(UserContext);
-    if (!ctx) {
-        throw new Error("useUser must be used within a UserProvider");
-    }
-    return ctx;
+const Ctx = createContext<UserContextValue>({
+    user: null,
+    setUser: () => { },
+})
+
+export const UserProvider = ({ children }: { children: React.ReactNode }) => {
+    const [user, setUser] = React.useState<User>(null)
+    return <Ctx.Provider value={{ user, setUser }}>{children}</Ctx.Provider>
 }
+
+export const useUser = () => useContext(Ctx)

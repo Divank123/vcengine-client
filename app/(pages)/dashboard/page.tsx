@@ -7,8 +7,10 @@ import { ProfileSidebar } from "./components/profile-sidebar"
 import { MainContent } from "./components/main-content"
 import axios from "axios"
 import { useUser } from "@/context/user-context"
+import { requestHandler } from "@/lib/requestHandler"
 
 export default function DashboardPage() {
+
   const [activeTab, setActiveTab] = useState("overview")
   const [profile, setProfile] = useState({
     username: "",
@@ -19,20 +21,23 @@ export default function DashboardPage() {
     profileImage: "",
   })
 
+
   const { user, setUser } = useUser()
+
   useEffect(() => {
     const fetchUser = async () => {
+
       if (!user) {
         console.log('Need to refresh');
-        const { data: { result } } = await axios.get("http://localhost:1234/api/v1/auth/user", { withCredentials: true })
-        setUser(result);
-        setProfile(prev => {
-          return {
-            ...prev,
-            username: result.username,
-            profileImage: `http://localhost:1234/api/v1/auth/avatar/${result.id}`
-          };
-        });
+
+        requestHandler({
+          url: "/auth/user",
+          method: "GET",
+          action: ({ user }: any) => {
+            console.log(user);
+            setUser(user)
+          }
+        })
       }
       else {
         setProfile(prev => {
@@ -53,16 +58,16 @@ export default function DashboardPage() {
     setProfile(updatedProfile)
   }
 
-  if (!user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-3 text-gray-300">
-          <div className="h-10 w-10 rounded-full border-2 border-emerald-500 border-t-transparent animate-spin" />
-          <div className="text-sm">Loading your dashboard...</div>
-        </div>
-      </div>
-    )
-  }
+  // if (!user) {
+  //   return (
+  //     <div className="min-h-screen flex items-center justify-center bg-background">
+  //       <div className="flex flex-col items-center gap-3 text-gray-300">
+  //         <div className="h-10 w-10 rounded-full border-2 border-emerald-500 border-t-transparent animate-spin" />
+  //         <div className="text-sm">Loading your dashboard...</div>
+  //       </div>
+  //     </div>
+  //   )
+  // }
 
   return (
     <div className="min-h-screen bg-background premium-scrollbar relative">

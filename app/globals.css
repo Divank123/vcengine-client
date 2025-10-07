@@ -10,7 +10,7 @@
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.6 0.2 142); /* Changed primary color to green for slider */
+  --primary: oklch(0.205 0 0);
   --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
@@ -37,6 +37,8 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+  /* add a silver token for controlled "silver" hover color */
+  --silver: oklch(0.7 0.02 240);
 }
 
 .dark {
@@ -46,10 +48,8 @@
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.145 0 0);
   --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(
-    0.7 0.2 142
-  ); /* Changed primary color to lighter green for dark mode */
-  --primary-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.985 0 0);
+  --primary-foreground: oklch(0.205 0 0);
   --secondary: oklch(0.269 0 0);
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(0.269 0 0);
@@ -74,6 +74,8 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(0.269 0 0);
   --sidebar-ring: oklch(0.439 0 0);
+  /* ensure silver token also available in dark theme */
+  --silver: oklch(0.7 0.02 240);
 }
 
 @theme inline {
@@ -121,48 +123,40 @@
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
   }
 }
 
 @layer components {
-  .progress-slider {
-    @apply transition-all duration-500 ease-out;
+
+  /* keep existing transitions for interactive elements */
+  button,
+  a,
+  input,
+  textarea,
+  select {
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
-  .progress-slider [data-radix-slider-track] {
-    @apply transition-all duration-700 ease-in-out;
+  /* custom hover style for Google sign-in label */
+  .group:hover .text-google-label {
+    color: var(--silver);
   }
 
-  .progress-slider [data-radix-slider-range] {
-    @apply transition-all duration-700 ease-in-out;
-    animation: smooth-progress 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  /* glow + focus styles for circular avatar uploader using theme tokens */
+  .avatar-glow {
+    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease;
   }
 
-  .progress-slider [data-radix-slider-thumb] {
-    @apply transition-all duration-500 ease-out;
-    animation: pulse-thumb 2s ease-in-out infinite;
+  .avatar-glow:hover {
+    transform: scale(1.04);
+    box-shadow: 0 0 28px var(--color-primary);
   }
 
-  @keyframes smooth-progress {
-    0% {
-      transform: scaleX(0);
-      transform-origin: left;
-    }
-    100% {
-      transform: scaleX(1);
-      transform-origin: left;
-    }
-  }
-
-  @keyframes pulse-thumb {
-    0%,
-    100% {
-      box-shadow: 0 0 0 0 rgba(0, 212, 170, 0.7);
-    }
-    50% {
-      box-shadow: 0 0 0 10px rgba(0, 212, 170, 0);
-    }
+  .avatar-glow:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
   }
 }

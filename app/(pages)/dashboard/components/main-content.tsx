@@ -8,6 +8,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import axios from "axios"
+import { requestHandler } from "@/lib/requestHandler"
 
 interface MainContentProps {
   activeTab: string
@@ -42,10 +43,17 @@ export function MainContent({ activeTab }: MainContentProps) {
       try {
         setIsLoading(true)
         const userId = "21841b57-87b4-410d-8c48-aa4d95582772"
-        const { data: { result: { workspaces } } } = await axios.get(`http://localhost:1234/api/v1/workspace/${userId}`, { withCredentials: true })
 
 
-        setWorkspaces(workspaces)
+        requestHandler({
+          url: `/workspace/${userId}`,
+          method: "GET",
+          action: ({ workspaces }: any) => {
+            setWorkspaces(workspaces)
+          }
+        })
+
+
       } catch (e) {
         setWorkspaces([])
       } finally {
