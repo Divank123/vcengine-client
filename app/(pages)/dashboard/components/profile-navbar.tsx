@@ -3,6 +3,7 @@ import { Plus, BarChart3, FolderOpen, Star, Edit2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { cn } from "@/lib/utils"
+import { useRouter } from "next/navigation"
 
 interface ProfileNavbarProps {
   activeTab: string
@@ -16,6 +17,7 @@ interface ProfileNavbarProps {
 }
 
 export function ProfileNavbar({ activeTab, onTabChange, profileData, onEditProfile }: ProfileNavbarProps) {
+  const router = useRouter()
   const tabs = [
     { id: "overview", label: "Overview", icon: BarChart3 },
     { id: "repositories", label: "Repositories", icon: FolderOpen },
@@ -75,8 +77,11 @@ export function ProfileNavbar({ activeTab, onTabChange, profileData, onEditProfi
             })}
           </div>
 
-          <Button className="bg-primary hover:bg-primary/90 hover:scale-105 transition-all duration-300 animate-shimmer text-foreground font-medium shadow-lg shadow-primary/25">
-            <Plus className="w-4 h-4 mr-2" />
+          <Button className="bg-primary text-black hover:bg-primary/90 hover:scale-105 transition-all duration-300 animate-shimmer font-medium shadow-lg shadow-primary/25"
+
+            onClick={() => router.push('/upload')}
+          >
+            <Plus className="w-4 h-4 mr-2 text-black" />
             New Workspace
           </Button>
         </div>

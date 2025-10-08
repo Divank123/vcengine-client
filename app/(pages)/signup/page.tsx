@@ -27,7 +27,7 @@ import { useUser } from "@/context/user-context"
 import { requestHandler } from "@/lib/requestHandler"
 import { toast } from "sonner"
 
-export default function Home() {
+export default function Signup() {
   const { setUser } = useUser()
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
@@ -60,6 +60,17 @@ export default function Home() {
     console.log("[v0] Google sign-in clicked")
   }
 
+  const onUsernameChange = (username: string) => {
+    requestHandler({
+      url: `/auth/unique-username/${username}`,
+      method: 'GET',
+      action: (d: any) => {
+        console.log(d);
+      }
+    })
+  }
+
+
   const handleInputChange = (field: keyof FormDataState, value: File | string) => {
     setFormData({
       ...formData,
@@ -71,36 +82,58 @@ export default function Home() {
     e.preventDefault()
     setIsLoading(true)
 
+
+    // Doing Validation
+    if (formData.password != formData.confirmPassword) {
+      toast.warning("Passwords Not Match")
+      setIsLoading(false)
+      return;
+    }
+
     try {
-      let avatarUrl: string | null = null
-
-      if (formData.selectedFile) {
-        setShowUploadDialog(true)
-        setUploadProgress(0)
-        avatarUrl = await uploadAvatar()
-        setShowUploadDialog(false)
-      }
-
-
+      // Check for username uniqueness
       requestHandler({
-        url: "/auth/signup",
-        method: "POST",
-        body: {
-          email: formData.email,
-          username: formData.username,
-          password: formData.confirmPassword,
-          name: formData.name,
-          ...(avatarUrl && { avatar: avatarUrl }),
-        },
-        action: ({ user }: any) => {
-          setUser(user)
-          toast.success("Signup Successfully !!")
-          router.push('/dashboard')
+        url: `/auth/unique-username/${formData.username}`,
+        method: 'GET',
+        action: async (isUsernameExist: any) => {
+
+          // Username Exists
+          if (isUsernameExist) {
+            toast.warning("Username already exists")
+            setIsLoading(false)
+            return;
+          }
+
+          let avatarKey: string | null = null
+
+          if (formData.selectedFile) {
+            setShowUploadDialog(true)
+            setUploadProgress(0)
+            avatarKey = await uploadAvatar()
+            console.log(avatarKey);
+            setShowUploadDialog(false)
+          }
+
+
+          requestHandler({
+            url: "/auth/signup",
+            method: "POST",
+            body: {
+              email: formData.email,
+              username: formData.username,
+              password: formData.confirmPassword,
+              name: formData.name,
+              ...(avatarKey && { avatar: avatarKey }),
+            },
+            action: ({ user }: any) => {
+              setUser(user)
+              toast.success("Signup Successfully !!")
+              router.push('/dashboard')
+            }
+          })
+            .finally(() => setIsLoading(false))
         }
       })
-        .finally(() => setIsLoading(false))
-
-
     } catch (error: any) {
       setIsLoading(false)
       setShowUploadDialog(false)
@@ -117,7 +150,8 @@ export default function Home() {
           contentType: formData.selectedFile?.type,
           type: "avatar",
         },
-        action: async ({ uploadUrl }: any) => {
+        action: async ({ uploadUrl, fileKey }: any) => {
+
           await axios.put(uploadUrl, formData.selectedFile, {
             headers: {
               "Content-Type": formData.selectedFile?.type,
@@ -128,8 +162,12 @@ export default function Home() {
               setUploadProgress(percent)
             },
           })
+
+          resolve(fileKey)
         }
-      }).finally(() => setIsLoading(false))
+      })
+        .catch(reject)
+        .finally(() => setIsLoading(false))
     })
   }
 
@@ -312,7 +350,9 @@ export default function Home() {
                     type="text"
                     placeholder="Enter your user name"
                     value={formData.username}
-                    onChange={(e) => handleInputChange("username", e.target.value)}
+                    onChange={(e) => {
+                      handleInputChange("username", e.target.value)
+                    }}
                     className="bg-input border-border focus:border-primary transition-colors hover:border-primary/50"
                     required
                   />

@@ -1,7 +1,6 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { MainNavbar } from "./components/main-navbar"
 import { ProfileNavbar } from "./components/profile-navbar"
 import { ProfileSidebar } from "./components/profile-sidebar"
 import { MainContent } from "./components/main-content"
@@ -26,10 +25,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const fetchUser = async () => {
-
       if (!user) {
-        console.log('Need to refresh');
-
         requestHandler({
           url: "/auth/user",
           method: "GET",
@@ -44,7 +40,7 @@ export default function DashboardPage() {
           return {
             ...prev,
             username: user.username!,
-            profileImage: `http://localhost:1234/api/v1/auth/avatar/${user.id}`
+            profileImage: `http://localhost:1234/api/v1/get-image-content/avatar/${user.avatar}`
           };
         });
       }
@@ -71,8 +67,6 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-background premium-scrollbar relative">
-      {/* Main Navigation - Pass profile data to sync avatar */}
-      <MainNavbar profileData={profile} />
 
       {/* Profile Navigation */}
       <ProfileNavbar activeTab={activeTab} onTabChange={setActiveTab} profileData={profile} />

@@ -47,6 +47,7 @@ export function ProfileSidebar({ profileData, onProfileSave }: ProfileSidebarPro
             <EditProfileDialog initialData={profileData} onSave={onProfileSave}>
               <Button
                 variant="outline"
+                disabled
                 className="w-full hover:bg-primary hover:text-primary-foreground transition-all duration-300 bg-card border-primary/50 text-primary hover:border-primary hover-lift"
               >
                 <span className="mr-2">✏️</span>

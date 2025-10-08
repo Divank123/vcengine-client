@@ -9,12 +9,16 @@ import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import axios from "axios"
 import { requestHandler } from "@/lib/requestHandler"
+import { useUser } from "@/context/user-context"
+import { useRouter } from "next/navigation"
 
 interface MainContentProps {
   activeTab: string
 }
 
 export function MainContent({ activeTab }: MainContentProps) {
+  const { user } = useUser()
+  const router = useRouter()
   const [searchQuery, setSearchQuery] = useState("")
   const [sortBy, setSortBy] = useState("updated")
   const [isTransitioning, setIsTransitioning] = useState(false)
@@ -42,11 +46,9 @@ export function MainContent({ activeTab }: MainContentProps) {
     const fetchWorkspaces = async () => {
       try {
         setIsLoading(true)
-        const userId = "21841b57-87b4-410d-8c48-aa4d95582772"
 
-
-        requestHandler({
-          url: `/workspace/${userId}`,
+        user && requestHandler({
+          url: `/workspace/${user.id}`,
           method: "GET",
           action: ({ workspaces }: any) => {
             setWorkspaces(workspaces)
@@ -62,7 +64,7 @@ export function MainContent({ activeTab }: MainContentProps) {
     }
     fetchWorkspaces()
 
-  }, [])
+  }, [user])
 
   // Derived datasets from fetched workspaces
   const allRepositories: Workspace[] = workspaces
@@ -82,12 +84,15 @@ export function MainContent({ activeTab }: MainContentProps) {
           <div className="h-10 w-10 rounded-full border-2 border-emerald-500 border-t-transparent animate-spin" />
         </div>
       ) : (
-        <div> Pinned Repos</div>
+        <>
+          <div> Pinned Repos</div>
+          <p>No ones</p>
+        </>
       )
       }
 
       {/* Recent Activity */}
-      <div>
+      {/* <div>
         <h3 className="text-lg font-semibold mb-4 flex items-center text-foreground">
           <Calendar className="w-5 h-5 mr-2 text-primary" />
           Recent Activity
@@ -117,7 +122,7 @@ export function MainContent({ activeTab }: MainContentProps) {
             </div>
           </CardContent>
         </Card>
-      </div>
+      </div> */}
     </div >
   )
 
@@ -153,6 +158,9 @@ export function MainContent({ activeTab }: MainContentProps) {
       <div className="space-y-4">
         {workspaces.map((ws, index) => (
           <Card
+            onClick={() => {
+              router.push('/video-player')
+            }}
             key={(ws as any).id ?? ws.name}
             className="hover:shadow-lg hover:shadow-primary/10 transition-all duration-300 hover:scale-[1.01] cursor-pointer group bg-card border-border"
             style={{ animationDelay: `${index * 50}ms` }}

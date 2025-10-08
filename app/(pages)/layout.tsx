@@ -7,12 +7,14 @@ import { Suspense } from "react"
 import "@/app/globals.css"
 import { UserProvider } from "@/context/user-context"
 import { Toaster } from "@/components/ui/sonner"
+import { MainNavbar } from "./navbar"
 
 export const metadata: Metadata = {
   title: "CinemaStudio - Professional Video Editor",
   description: "Create stunning videos with CinemaStudio. Professional video editing tools for creators.",
   generator: "v0.app",
 }
+
 
 export default function RootLayout({
   children,

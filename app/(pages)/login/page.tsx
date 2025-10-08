@@ -14,7 +14,7 @@ import axios from "axios"
 import { useUser } from "@/context/user-context"
 import { requestHandler } from "@/lib/requestHandler"
 
-export default function Home() {
+export default function Login() {
   const router = useRouter()
   const { setUser } = useUser()
   const [isLoading, setIsLoading] = useState(false)

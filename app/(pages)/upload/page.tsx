@@ -1,365 +1,509 @@
-"use client";
+"use client"
 
-import type React from "react";
-import { useEffect, useState } from "react";
-import { Search, Video, Upload, Plus, ImageIcon } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import axios from "axios";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Slider } from "@/components/ui/slider";
+import type React from "react"
+import { useState, useRef } from "react"
+import axios from "axios"
+import { ArrowRight, Sparkles, Upload, ImageIcon } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Progress } from "@/components/ui/progress"
+import { Switch } from "@/components/ui/switch"
+import { requestHandler } from "@/lib/requestHandler"
+import { useRouter } from "next/navigation"
+
+type UploadState = {
+  workspace: string
+  branch: string
+  videoFile: File | null
+  thumbnailFile: File | null
+}
 
 export default function VideoUploadPage() {
-  const [title, setTitle] = useState("");
-  const [workspace, setWorkspace] = useState("");
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [isUploading, setIsUploading] = useState(false);
-  const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
-  const [thumbnailPreviewUrl, setThumbnailPreviewUrl] = useState<string | null>(
-    null
-  );
+  const rotuer = useRouter()
+  const [form, setForm] = useState<UploadState>({
+    workspace: "",
+    branch: "",
+    videoFile: null,
+    thumbnailFile: null,
+  })
 
-  const uploadProcess = async () => {
-    const uploadVideo = () => {};
-    const uploadThumbnail = () => {};
+  const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null)
+  const [thumbnailPreviewUrl, setThumbnailPreviewUrl] = useState<string | null>(null)
+  const [thumbLoaded, setThumbLoaded] = useState(false)
+  const [thumbError, setThumbError] = useState<string | null>(null)
 
-    if (!selectedFile) return;
+  const [isUploading, setIsUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(0)
+  const [showUploadDialog, setShowUploadDialog] = useState(false)
 
-    setIsUploading(true);
-    setUploadProgress(0);
+  const [step, setStep] = useState(1)
+  const [isPrivate, setIsPrivate] = useState(true)
 
-    try {
-      const {
-        data: {
-          result:{uploadUrl},
-        },
-      } = await axios.post(
-        `http://localhost:1234/api/v1/video/upload`,
-        {
-          commitMessage: "Init Video",
-          branch: "main", // default branch
-          workspace:"9736831a-2072-4570-8444-1fe65c510ac2", // should be workspace id, not just name
-          contentType: selectedFile.type,
-        }
-      );
+  const thumbInputRef = useRef<HTMLInputElement>(null)
 
-      await axios.put(uploadUrl, selectedFile, {
-        headers: {
-          "Content-Type": selectedFile.type,
-        },
-        onUploadProgress: ({ progress }) => {
-          if (progress) {
-            const percent = Math.round(progress * 100);
-            setUploadProgress(percent);
-          }
-        },
-      });
-      
-      setIsUploading(false);
-      setUploadProgress(100);
-    } catch (error) {
-      console.error("Upload failed:", error);
-      setIsUploading(false);
-      setUploadProgress(0);
+  const handleInput = (key: keyof UploadState, value: string | File | null) => {
+    setForm((prev) => ({ ...prev, [key]: value as any }))
+  }
+
+  const handleVideoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    handleInput("videoFile", file)
+    setVideoPreviewUrl(URL.createObjectURL(file))
+  }
+
+  const handleThumbSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const MAX_THUMB_SIZE = 5 * 1024 * 1024 // 5 MB
+    if (file.size > MAX_THUMB_SIZE) {
+      setThumbError("Max thumbnail size is 5 MB.")
+      // clear selection
+      e.currentTarget.value = ""
+      handleInput("thumbnailFile", null)
+      setThumbnailPreviewUrl(null)
+      return
     }
-  };
-
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      setSelectedFile(file);
-      const url = URL.createObjectURL(file);
-      setVideoPreviewUrl(url);
-    }
-  };
-
-  const handleThumbnailSelect = (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      setThumbnailFile(file);
-      const url = URL.createObjectURL(file);
-      setThumbnailPreviewUrl(url);
-    }
-  };
+    setThumbError(null)
+    handleInput("thumbnailFile", file)
+    setThumbLoaded(false) // reset animation state before new preview
+    setThumbnailPreviewUrl(URL.createObjectURL(file))
+  }
 
   const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return "0 Bytes";
-    const k = 1024;
-    const sizes = ["Bytes", "KB", "MB", "GB"];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return (
-      Number.parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i]
-    );
-  };
+    if (!bytes) return "0 B"
+    const k = 1024
+    const sizes = ["B", "KB", "MB", "GB", "TB"]
+    const i = Math.floor(Math.log(bytes) / Math.log(k))
+    return `${(bytes / Math.pow(k, i)).toFixed(2)} ${sizes[i]}`
+  }
+
+  const uploadProcess = async () => {
+    if (!form.videoFile) return
+    setIsUploading(true)
+    setUploadProgress(0)
+    setShowUploadDialog(true)
+
+    let bannerKey: string | null = null
+
+    // Thumbnail Upload
+    if (form.thumbnailFile) {
+      requestHandler({
+        url: "/get-signed-url",
+        method: "POST",
+        body: {
+          contentType: form.thumbnailFile?.type,
+          type: "banner",
+        },
+        action: async ({ uploadUrl, fileKey }: any) => {
+          await axios.put(uploadUrl, form.thumbnailFile, {
+            headers: {
+              "Content-Type": form.thumbnailFile?.type,
+            },
+            onUploadProgress: (evt) => {
+              if (!evt.total) return
+              const percent = Math.round((evt.loaded / evt.total) * 100)
+              setUploadProgress(percent)
+            },
+          })
+
+          bannerKey = fileKey
+        }
+      })
+    }
+
+    // Workspace & Branch Create
+    requestHandler({
+      url: "/workspace",
+      method: "POST",
+      body: {
+        name: form.workspace,
+        branchName: form.branch,
+        type: isPrivate ? "Private" : "Public",
+        banner: bannerKey
+      },
+      action: ({ branchId,
+        workspaceId }: any) => {
+
+
+
+
+        // Video Upload
+        requestHandler({
+          url: "/video/upload",
+          method: 'POST',
+          body: {
+            contentType: form.videoFile?.type,
+            commitMessage: "init",
+            workspace: workspaceId,
+            branch: branchId,
+          },
+          action: async ({ uploadUrl }: any) => {
+            await axios.put(uploadUrl, form.videoFile, {
+              headers: { "Content-Type": form.videoFile?.type },
+              onUploadProgress: (evt) => {
+                const total = evt.total || form.videoFile?.size || 0
+                const loaded = evt.loaded || 0
+                const percent = total ? Math.round((loaded / total) * 100) : 0
+                setUploadProgress(percent)
+              },
+            })
+
+            setShowUploadDialog(false)
+            rotuer.push('/dashboard')
+          }
+        })
+      }
+    })
+
+
+    // try {
+    //   const { data } = await axios.post("/api/v1/video/upload", {
+    //     commitMessage: "Init Video",
+    //     branch: form.branch,
+    //     workspace: form.workspace,
+    //     contentType: form.videoFile.type,
+    //     isPrivate: isPrivate,
+    //   })
+
+    //   const uploadUrl: string | undefined = data?.result?.uploadUrl
+    //   if (!uploadUrl) throw new Error("No upload URL returned")
+
+    //   await axios.put(uploadUrl, form.videoFile, {
+    //     headers: { "Content-Type": form.videoFile.type },
+    //     onUploadProgress: (evt) => {
+    //       const total = evt.total || form.videoFile?.size || 0
+    //       const loaded = evt.loaded || 0
+    //       const percent = total ? Math.round((loaded / total) * 100) : 0
+    //       setUploadProgress(percent)
+    //     },
+    //   })
+
+    //   // Optionally upload thumbnail if present (example placeholder; depends on your backend)
+    //   // if (form.thumbnailFile) { ... }
+
+    //   setUploadProgress(100)
+    // } catch (err) {
+    //   console.error("[v0] Upload error:", err)
+    //   // keep dialog open to show current progress state; could add toast if project uses it
+    // } finally {
+    //   setIsUploading(false)
+    //   // keep dialog visible briefly so users see completion; close after short delay
+    //   setTimeout(() => setShowUploadDialog(false), 600)
+    // }
+  }
 
   return (
-    <div className="h-screen bg-[#0A0A0A] text-white animate-fade-in flex flex-col overflow-hidden">
-      {selectedFile && (
-        <div className="fixed top-22 right-2 z-50 bg-gray-900/95 backdrop-blur-sm border border-gray-700/50 rounded-xl p-4 shadow-2xl animate-slide-in-right">
-          <div className="flex flex-col space-y-2">
-            <div className="text-sm text-gray-300">
-              <span className="text-[#00D4AA] font-semibold">Name:</span>{" "}
-              {selectedFile.name}
-            </div>
-            <div className="text-sm text-gray-300">
-              <span className="text-[#00D4AA] font-semibold">Size:</span>{" "}
-              {formatFileSize(selectedFile.size)}
-            </div>
-          </div>
-        </div>
-      )}
+    <main className="min-h-screen relative overflow-hidden grid items-center" >
+      {/* Content layout mirrors signup/login */}
+      <section className="px-6 md:px-12 lg:px-20 pb-16" >
+        <div className="w-full max-w-5xl mx-auto">
+          <div className="relative">
+            {/* Upload container (primary focus) */}
+            <Card className="bg-card/80 backdrop-blur border-border/60 shadow-2xl">
+              <CardHeader className="space-y-2 text-center">
+                <CardTitle className="text-2xl">Upload Video</CardTitle>
+                <CardDescription>Step {step} of 3</CardDescription>
 
-      {/* Progress Bar */}
-      {isUploading && (
-        <div className="fixed bottom-0 left-0 w-full z-50 animate-slide-up">
-          <div className="w-full bg-[#0b0d10fc] backdrop-blur-sm border-t border-gray-700/50 p-6 shadow-2xl">
-            <div className="max-w-6xl mx-auto">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-gradient-to-br from-[#00D4AA] to-[#00B894] rounded-full flex items-center justify-center animate-pulse">
-                    <Upload className="w-6 h-6 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-white">
-                      Uploading Video
-                    </h3>
-                    <p className="text-sm text-gray-400">
-                      {selectedFile?.name}
-                    </p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="text-2xl font-bold text-[#00D4AA]">
-                    {uploadProgress}%
-                  </div>
-                  <div className="text-xs text-gray-400">
-                    {formatFileSize(selectedFile?.size || 0)}
-                  </div>
-                </div>
-              </div>
-
-              <div className="w-full max-w-4xl mx-auto">
-                <Slider
-                  value={[uploadProgress]}
-                  max={100}
-                  step={0.1}
-                  disabled
-                  className="progress-slider w-full h-4 transition-all duration-700 ease-out"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Navbar */}
-      <nav className="h-[8vh] bg-black sticky top-0 z-50 shadow-2xl border-b border-gray-800/50">
-        <div className="h-full px-6 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <span className="text-lg font-bold text-[#00D4AA]">VC Engine</span>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-              <Input
-                placeholder="Search projects..."
-                className="w-60 pl-10 bg-gray-900 border-gray-700 focus:border-[#00D4AA] transition-all duration-300 rounded-full text-sm"
-              />
-            </div>
-            <Avatar className="w-8 h-8 ring-2 ring-[#00D4AA]/30 hover:ring-[#00D4AA]/60 transition-all duration-300 cursor-pointer">
-              <AvatarImage src="/placeholder-user.png" />
-              <AvatarFallback className="bg-[#00D4AA] text-white font-semibold text-sm">
-                JD
-              </AvatarFallback>
-            </Avatar>
-          </div>
-        </div>
-      </nav>
-
-      {/* Main Content */}
-      <div className="flex-1 px-6 py-6 animate-fade-up overflow-hidden flex flex-col">
-        <div
-          className={`mx-auto flex-1 transition-all duration-700 ease-in-out ${
-            videoPreviewUrl ? "max-w-[90%]" : "max-w-7xl"
-          }`}
-        >
-          <div className="h-full flex flex-col space-y-4">
-            <div className="text-center animate-fade-up border-b border-gray-800/30 pb-6">
-              <h1 className="text-3xl font-bold text-white mb-4 flex items-center justify-center gap-3">
-                <Video className="w-10 h-10 text-[#00D4AA]" />
-                Video Upload Studio
-              </h1>
-              <p className="text-lg text-gray-400">
-                Upload and manage your video content with custom thumbnails
-              </p>
-            </div>
-
-            <div className="flex gap-8 items-start transition-all duration-700 ease-in-out">
-              {/* Left side - Video Upload */}
-              <div
-                className={`flex flex-col space-y-4 border border-gray-800/50 rounded-xl p-6 bg-gray-900/20 transition-all duration-700 ease-in-out h-auto ${
-                  videoPreviewUrl ? "flex-[3] w-[75vw]" : "flex-1 w-[40vw]"
-                }`}
-              >
-                <div className="animate-slide-right">
-                  <label className="block text-base font-medium text-gray-300 mb-2">
-                    Video Title
-                  </label>
-                  <Input
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    placeholder="Enter your video title..."
-                    className="h-12 text-lg bg-gray-800/50 border-gray-700 text-white placeholder-gray-400 focus:border-[#00D4AA] focus:ring-[#00D4AA]/20 focus:shadow-[0_0_20px_rgba(0,212,170,0.3)] transition-all duration-300 hover:bg-gray-700/50"
-                  />
-                </div>
-
-                <div className="animate-slide-right">
-                  <label className="block text-base font-medium text-gray-300 mb-2">
-                    Workspace
-                  </label>
-                  <Input
-                    value={workspace}
-                    onChange={(e) => setWorkspace(e.target.value)}
-                    placeholder="Enter your workspace name..."
-                    className="h-12 text-lg bg-gray-800/50 border-gray-700 text-white placeholder-gray-400 focus:border-[#00D4AA] focus:ring-[#00D4AA]/20 focus:shadow-[0_0_20px_rgba(0,212,170,0.3)] transition-all duration-300 hover:bg-gray-700/50"
-                  />
-                </div>
-
-                {/* Video Upload Area */}
-                <div className="relative flex-1">
-                  {videoPreviewUrl ? (
-                    <div className="w-full transition-all duration-700 h-[32rem] rounded-xl overflow-hidden border border-[#00D4AA]/50 shadow-[0_0_30px_rgba(0,212,170,0.25)] relative group">
-                      <video
-                        src={videoPreviewUrl}
-                        controls
-                        className="w-full h-full object-contain bg-black"
-                        preload="metadata"
-                      >
-                        Your browser does not support the video tag.
-                      </video>
-
-                      {/* Hover overlay with Replace Video button */}
-                      {/* <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                        <label className="cursor-pointer">
-                          <input
-                            type="file"
-                            accept="video/*"
-                            onChange={handleFileSelect}
-                            className="hidden"
-                          />
-                          <Button
-                            size="sm"
-                            className="bg-[#00D4AA] hover:bg-[#00B894] text-white"
-                          >
-                            Replace Video
-                          </Button>
-                        </label>
-                      </div> */}
-                    </div>
-                  ) : (
-                    <label className="w-full h-48 border-2 border-dashed border-gray-600 rounded-xl flex items-center justify-center hover:border-[#00D4AA] hover:bg-[#00D4AA]/5 transition-all duration-300 group hover:scale-105 cursor-pointer">
-                      <input
-                        type="file"
-                        accept="video/*"
-                        onChange={handleFileSelect}
-                        className="hidden"
-                      />
-                      <div className="text-center">
-                        <div className="w-12 h-12 bg-gray-800/50 rounded-full flex items-center justify-center mb-3 mx-auto group-hover:bg-[#00D4AA]/20 transition-all duration-300">
-                          <Upload className="w-6 h-6 text-gray-400 group-hover:text-[#00D4AA] transition-colors" />
-                        </div>
-                        <div className="text-lg font-medium text-white mb-1">
-                          Add Video
-                        </div>
-                        <div className="text-sm text-gray-400">
-                          Click to upload video
-                        </div>
-                      </div>
-                    </label>
-                  )}
-                </div>
-              </div>
-
-              {/* Right side - Thumbnail Upload */}
-              <div>
-                <div
-                  className={`flex flex-col space-y-4 border border-gray-800/50 rounded-xl p-6 bg-gray-900/20 transition-all duration-700 ease-in-out h-auto ${
-                    thumbnailPreviewUrl ? "w-[36rem]" : "w-80"
-                  }`}
-                >
-                  <div className="flex items-center gap-2 mb-2">
-                    <ImageIcon className="w-5 h-5 text-[#00D4AA]" />
-                    <h2 className="text-xl font-semibold text-white">
-                      Thumbnail
-                    </h2>
-                  </div>
-
-                  <div className="relative flex-1">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleThumbnailSelect}
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                    />
-
-                    {thumbnailPreviewUrl ? (
-                      <div className="w-full h-72 rounded-xl  overflow-hidden border border-[#00D4AA]/50 shadow-[0_0_30px_rgba(0,212,170,0.25)] relative group transition-all duration-700">
-                        <img
-                          src={thumbnailPreviewUrl || "/placeholder.svg"}
-                          alt="Thumbnail preview"
-                          className="w-full h-full object-contain"
-                        />
-                      </div>
-                    ) : (
-                      <div className="w-full h-48 border-2 border-dashed border-gray-600 rounded-xl flex items-center justify-center hover:border-[#00D4AA] hover:bg-[#00D4AA]/5 transition-all duration-300 group hover:scale-105">
-                        <div className="text-center">
-                          <div className="w-12 h-12 bg-gray-800/50 rounded-full flex items-center justify-center mb-3 mx-auto group-hover:bg-[#00D4AA]/20 transition-all duration-300">
-                            <Plus className="w-6 h-6 text-gray-400 group-hover:text-[#00D4AA] transition-colors" />
-                          </div>
-                          <div className="text-lg font-medium text-white mb-1">
-                            Add Thumbnail
-                          </div>
-                          <div className="text-sm text-gray-400">
-                            Click to upload image
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {thumbnailFile && (
-                    <div className="text-center p-3 bg-gray-800/30 rounded-lg border border-gray-700/50">
-                      <div className="text-sm text-gray-300 truncate">
-                        {thumbnailFile.name}
-                      </div>
-                      <div className="text-xs text-gray-400 mt-1">
-                        {formatFileSize(thumbnailFile.size)}
-                      </div>
-                    </div>
-                  )}
-                </div>
-                {/* Upload Button */}
-                {selectedFile && videoPreviewUrl && (
-                  <div className="flex justify-center py-6 mt-12">
-                    <Button
-                      size="lg"
-                      className="bg-gradient-to-r from-[#00D4AA] to-[#00B894] hover:from-[#00C4A0] hover:to-[#00A085] text-white font-bold text-base px-8 py-6 rounded-xl shadow-lg hover:shadow-[0_0_40px_rgba(0,212,170,0.5)] transition-all duration-300 transform hover:scale-110 animate-pulse-glow-button"
-                      onClick={uploadProcess}
+                {/* Step indicator */}
+                <div className="mt-2 grid grid-cols-3 gap-2">
+                  <div className="flex items-center justify-center gap-2">
+                    <div
+                      className={`size-6 rounded-full grid place-content-center text-xs border transition-colors ${step >= 1
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-card text-muted-foreground border-border"
+                        }`}
                     >
-                      <Upload className="w-5 h-5 mr-2 animate-bounce-subtle" />
-                      Upload Video
-                    </Button>
+                      1
+                    </div>
+                    <span className={`text-xs ${step >= 1 ? "text-foreground" : "text-muted-foreground"}`}>
+                      Details
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-center gap-2">
+                    <div
+                      className={`size-6 rounded-full grid place-content-center text-xs border transition-colors ${step >= 2
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-card text-muted-foreground border-border"
+                        }`}
+                    >
+                      2
+                    </div>
+                    <span className={`text-xs ${step >= 2 ? "text-foreground" : "text-muted-foreground"}`}>
+                      Thumbnail
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-center gap-2">
+                    <div
+                      className={`size-6 rounded-full grid place-content-center text-xs border transition-colors ${step >= 3
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-card text-muted-foreground border-border"
+                        }`}
+                    >
+                      3
+                    </div>
+                    <span className={`text-xs ${step >= 3 ? "text-foreground" : "text-muted-foreground"}`}>Video</span>
+                  </div>
+                </div>
+              </CardHeader>
+
+              <CardContent className="space-y-6">
+                {/* STEP 1: Details (workspace + branch) */}
+                {step === 1 && (
+                  <div className="space-y-4 transition-all duration-300">
+                    <div className="flex items-center justify-between rounded-lg bg-card/60 border border-border px-3 py-3">
+                      <div className="space-y-0.5">
+                        <div className="text-sm font-medium">Workspace Visibility</div>
+                        <div className="text-xs text-muted-foreground">
+                          {isPrivate ? "Private (only you can access)" : "Public (anyone with link can view)"}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className={`text-xs ${isPrivate ? "text-foreground" : "text-muted-foreground"}`}>
+                          Private
+                        </span>
+                        <Switch checked={isPrivate} onCheckedChange={setIsPrivate} aria-label="Toggle visibility" />
+                        <span className={`text-xs ${!isPrivate ? "text-foreground" : "text-muted-foreground"}`}>
+                          Public
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Workspace input follows the toggle as requested */}
+                    <div className="space-y-2">
+                      <Label htmlFor="workspace" className="text-sm font-medium">
+                        Workspace
+                      </Label>
+                      <Input
+                        id="workspace"
+                        type="text"
+                        placeholder="Enter your workspace ID"
+                        value={form.workspace}
+                        onChange={(e) => handleInput("workspace", e.target.value)}
+                        className="bg-input border-border focus:border-primary transition-colors hover:border-primary/50"
+                        required
+                      />
+                    </div>
+
+                    {/* Branch input */}
+                    <div className="space-y-2">
+                      <Label htmlFor="branch" className="text-sm font-medium">
+                        Branch
+                      </Label>
+                      <Input
+                        id="branch"
+                        type="text"
+                        placeholder="e.g. main or feature/video-edit"
+                        value={form.branch}
+                        onChange={(e) => handleInput("branch", e.target.value)}
+                        className="bg-input border-border focus:border-primary transition-colors hover:border-primary/50"
+                        required
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-end gap-2 pt-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="border-border hover:border-primary/50 bg-transparent"
+                        onClick={() => setStep(2)}
+                        disabled={!form.workspace || !form.branch}
+                      >
+                        Next
+                        <ArrowRight className="w-4 h-4 ml-2" />
+                      </Button>
+                    </div>
                   </div>
                 )}
-              </div>
-            </div>
+
+                {/* STEP 2: Thumbnail/Banner */}
+                {step === 2 && (
+                  <div className="space-y-4 transition-all duration-300">
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">Thumbnail/Banner (optional)</Label>
+
+                      {!thumbnailPreviewUrl && (
+                        <label className="w-full h-40 md:h-48 rounded-lg border border-dashed border-border grid place-content-center text-center cursor-pointer hover:border-primary/50 hover:bg-card/60 transition-colors">
+                          <input
+                            id="thumb-input"
+                            ref={thumbInputRef}
+                            type="file"
+                            accept="image/*"
+                            onChange={handleThumbSelect}
+                            className="sr-only"
+                          />
+                          <div className="flex flex-col items-center gap-2">
+                            <div className="size-10 rounded-full bg-muted/40 grid place-content-center">
+                              <ImageIcon className="w-5 h-5 text-muted-foreground" />
+                            </div>
+                            <div className="text-sm">Click to upload thumbnail</div>
+                            <div className="text-xs text-muted-foreground">Max 5 MB • JPG, PNG, WEBP</div>
+                          </div>
+                        </label>
+                      )}
+
+                      {thumbError && <div className="text-xs text-destructive">{thumbError}</div>}
+
+                      {form.thumbnailFile && (
+                        <div className="text-xs text-muted-foreground flex items-center justify-between">
+                          <span className="truncate">{form.thumbnailFile.name}</span>
+                          <span>{formatFileSize(form.thumbnailFile.size)}</span>
+                        </div>
+                      )}
+
+                      {thumbnailPreviewUrl && (
+                        <div className="mt-3 w-[40%] md:w-[30%] min-w-[180px] rounded-lg overflow-hidden border border-border bg-card/60 animate-modal-pop">
+                          <img
+                            src={
+                              thumbnailPreviewUrl || "/placeholder.svg?height=320&width=568&query=thumbnail%20preview"
+                            }
+                            alt="Thumbnail preview"
+                            className={`h-auto w-full object-cover aspect-video ${thumbLoaded ? "thumb-fade-in" : "opacity-0"}`}
+                            onLoad={() => setThumbLoaded(true)}
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex items-center justify-between gap-2 pt-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="border-border hover:border-primary/50 bg-transparent"
+                        onClick={() => setStep(1)}
+                      >
+                        Back
+                      </Button>
+
+                      <div className="ml-auto flex items-center gap-2">
+                        {thumbnailPreviewUrl && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="border-border hover:border-primary/50 bg-transparent"
+                            onClick={() => {
+                              thumbInputRef.current?.click()
+                            }}
+                          >
+                            Replace
+                          </Button>
+                        )}
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="border-border hover:border-primary/50 bg-transparent"
+                          onClick={() => setStep(3)}
+                        >
+                          Next
+                          <ArrowRight className="w-4 h-4 ml-2" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* STEP 3: Video */}
+                {step === 3 && (
+                  <div className="space-y-4 transition-all duration-300">
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">Video File</Label>
+                      {videoPreviewUrl ? (
+                        <div className="rounded-lg overflow-hidden border border-primary/40 bg-card/60">
+                          <video
+                            src={videoPreviewUrl}
+                            controls
+                            className="video-skin w-full aspect-video max-h-[70vh] object-contain bg-background"
+                            preload="metadata"
+                          />
+                        </div>
+                      ) : (
+                        <label className="w-full h-48 md:h-64 lg:h-80 rounded-lg border border-dashed border-border grid place-content-center text-center cursor-pointer hover:border-primary/50 hover:bg-card/60 transition-colors">
+                          <Input type="file" accept="video/*" onChange={handleVideoSelect} className="sr-only" />
+                          <div className="flex flex-col items-center gap-2">
+                            <div className="size-10 rounded-full bg-muted/40 grid place-content-center">
+                              <Upload className="w-5 h-5 text-muted-foreground" />
+                            </div>
+                            <div className="text-sm">Click to upload video</div>
+                          </div>
+                        </label>
+                      )}
+
+                      {form.videoFile && (
+                        <div className="text-xs text-muted-foreground flex items-center justify-between">
+                          <span className="truncate">{form.videoFile.name}</span>
+                          <span>{formatFileSize(form.videoFile.size)}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex items-center justify-between gap-2 pt-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="border-border hover:border-primary/50 bg-transparent"
+                        onClick={() => setStep(2)}
+                      >
+                        Back
+                      </Button>
+
+                      {/* Upload button with shimmer like signup/login */}
+                      <Button
+                        type="button"
+                        onClick={uploadProcess}
+                        disabled={!form.videoFile || isUploading}
+                        className="bg-primary hover:bg-primary/90 text-primary-foreground font-medium py-6 group relative overflow-hidden disabled:opacity-60"
+                      >
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+                        <div className="flex items-center gap-2">
+                          {isUploading ? "Uploading..." : "Upload Video"}
+                          <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                        </div>
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
+
+
         </div>
-      </div>
+      </section >
+
+      {/* Upload progress dialog (matches signup's dialog pattern) */}
+      < Dialog open={showUploadDialog} >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Uploading video</DialogTitle>
+            <DialogDescription>Your file is being uploaded to secure storage.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Progress value={uploadProgress} />
+            <div className="text-sm text-muted-foreground text-right">{uploadProgress}%</div>
+          </div>
+        </DialogContent>
+      </Dialog >
+    </main >
+  )
+}
+
+function FeatureCard({
+  icon: Icon,
+  title,
+  desc,
+}: {
+  icon: React.ComponentType<{ className?: string }>
+  title: string
+  desc: string
+}) {
+  return (
+    <div className="p-4 rounded-lg bg-card/60 border border-border/60 hover:border-primary/40 hover:bg-card/80 transition-colors">
+      <Icon className="w-5 h-5 text-primary mb-2" />
+      <div className="font-medium">{title}</div>
+      <div className="text-xs text-muted-foreground">{desc}</div>
     </div>
-  );
+  )
 }
