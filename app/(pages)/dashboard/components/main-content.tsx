@@ -159,7 +159,7 @@ export function MainContent({ activeTab }: MainContentProps) {
         {workspaces.map((ws, index) => (
           <Card
             onClick={() => {
-              router.push('/video-player')
+              router.push(`/video-player`)
             }}
             key={(ws as any).id ?? ws.name}
             className="hover:shadow-lg hover:shadow-primary/10 transition-all duration-300 hover:scale-[1.01] cursor-pointer group bg-card border-border"

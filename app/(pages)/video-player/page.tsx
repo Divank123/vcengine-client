@@ -25,7 +25,7 @@ interface Workspace {
   type: string
 }
 
-export default function VideoStudioPage({ userId }: { userId: string }) {
+export default function VideoStudioPage() {
   const { user, setUser } = useUser()
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
@@ -45,6 +45,7 @@ export default function VideoStudioPage({ userId }: { userId: string }) {
 
   const [workspaces, setWorkspaces] = useState<Workspace[]>([])
   const [activeWorkspace, setActiveWorkspace] = useState<Workspace | null>(null)
+  const [maxResolutionMap, setMaxResolutionMap] = useState<Record<string, number>>({})
 
   const videoRef = useRef<HTMLVideoElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -56,7 +57,7 @@ export default function VideoStudioPage({ userId }: { userId: string }) {
     return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`
   }
 
-  // Fetch dynamic workspaces
+  // Fetch workspaces
   useEffect(() => {
     ; (async () => {
       try {
@@ -121,16 +122,22 @@ export default function VideoStudioPage({ userId }: { userId: string }) {
       const video = videoRef.current
       if (!video || !activeWorkspace?.id) return
 
-      try {
-        requestHandler({
-          url: `/video/max-resolution/${activeWorkspace.id}`,
-          method: 'GET',
-          action: ({ maxResolution }: any) => {
-            setMaxResolution(maxResolution)
-          }
-        })
-      } catch (err) {
-        console.error("Failed to fetch max resolution:", err)
+      if (!maxResolutionMap[activeWorkspace.id]) {
+        try {
+          requestHandler({
+            url: `/video/max-resolution/${activeWorkspace.id}`,
+            method: 'GET',
+            action: ({ maxResolution }: any) => {
+              setMaxResolution(maxResolution)
+              setMaxResolutionMap(prev => ({
+                ...prev,
+                [activeWorkspace.id]: maxResolution,
+              }))
+            }
+          })
+        } catch (err) {
+          console.error("Failed to fetch max resolution:", err)
+        }
       }
 
       const version = 1
@@ -191,8 +198,6 @@ export default function VideoStudioPage({ userId }: { userId: string }) {
 
   const resolutions = [144, 240, 360, 480, 720, 1080, 1440, 2160]
   const availableResolutions = resolutions.filter((res) => res <= maxResolution)
-  console.log(availableResolutions);
-
   const currentWorkspace = workspaces.find((ws) => ws.id === activeWorkspace?.id)
 
   return (
@@ -220,6 +225,7 @@ export default function VideoStudioPage({ userId }: { userId: string }) {
               <Button
                 variant="outline"
                 size="sm"
+                disabled
                 className="bg-transparent border-border hover:border-[var(--silver)] hover:bg-[color:oklch(0.7_0.02_240_/_.1)] text-foreground hover:cursor-pointer hover-lift"
               >
                 <Crop className="w-4 h-4 mr-2" />
@@ -227,6 +233,7 @@ export default function VideoStudioPage({ userId }: { userId: string }) {
               </Button>
               <Button
                 variant="outline"
+                disabled
                 size="sm"
                 className="bg-transparent border-border hover:border-[var(--silver)] hover:bg-[color:oklch(0.7_0.02_240_/_.1)] text-foreground hover:cursor-pointer hover-lift"
               >
