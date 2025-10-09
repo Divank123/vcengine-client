@@ -13,9 +13,9 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { requestHandler } from "@/lib/requestHandler"
-import { toast } from "sonner"
 import { useRouter } from "next/navigation"
 import { useUser } from "@/context/user-context"
+import { applyToast } from "@/lib/toast"
 
 export function MainNavbar() {
     const router = useRouter()
@@ -100,7 +100,7 @@ export function MainNavbar() {
                                     url: "/auth/logout",
                                     method: "GET",
                                     action: () => {
-                                        toast.success("Logged Out!!")
+                                        applyToast("Success", "Logged Out!!")
                                         router.push('/login')
                                     }
                                 })

@@ -9,10 +9,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { HardDrive, Layers, Cloud, Gauge, ArrowRight, Sparkles, Eye, EyeOff } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { toast } from "sonner"
-import axios from "axios"
 import { useUser } from "@/context/user-context"
 import { requestHandler } from "@/lib/requestHandler"
+import { applyToast } from "@/lib/toast"
 
 export default function Login() {
   const router = useRouter()
@@ -41,7 +40,7 @@ export default function Login() {
       },
       action: ({ user }: any) => {
         setUser(user)
-        toast.success("Login Success !!")
+        applyToast("Success", "Login Success !!")
         router.push('/dashboard')
       }
     })

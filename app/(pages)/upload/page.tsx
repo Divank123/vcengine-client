@@ -13,6 +13,7 @@ import { Progress } from "@/components/ui/progress"
 import { Switch } from "@/components/ui/switch"
 import { requestHandler } from "@/lib/requestHandler"
 import { useRouter } from "next/navigation"
+import { applyToast } from "@/lib/toast"
 
 type UploadState = {
   workspace: string
@@ -33,12 +34,11 @@ export default function VideoUploadPage() {
   const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null)
   const [thumbnailPreviewUrl, setThumbnailPreviewUrl] = useState<string | null>(null)
   const [thumbLoaded, setThumbLoaded] = useState(false)
-  const [thumbError, setThumbError] = useState<string | null>(null)
 
   const [isUploading, setIsUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
   const [showUploadDialog, setShowUploadDialog] = useState(false)
-
+  const [showUploadDialogTitle, setShowUploadDialogTitle] = useState("Upload Video")
   const [step, setStep] = useState(1)
   const [isPrivate, setIsPrivate] = useState(true)
 
@@ -60,14 +60,13 @@ export default function VideoUploadPage() {
     if (!file) return
     const MAX_THUMB_SIZE = 5 * 1024 * 1024 // 5 MB
     if (file.size > MAX_THUMB_SIZE) {
-      setThumbError("Max thumbnail size is 5 MB.")
+      applyToast("Warning", "Max thumbnail size is 5 MB")
       // clear selection
       e.currentTarget.value = ""
       handleInput("thumbnailFile", null)
       setThumbnailPreviewUrl(null)
       return
     }
-    setThumbError(null)
     handleInput("thumbnailFile", file)
     setThumbLoaded(false) // reset animation state before new preview
     setThumbnailPreviewUrl(URL.createObjectURL(file))
@@ -91,6 +90,7 @@ export default function VideoUploadPage() {
 
     // Thumbnail Upload
     if (form.thumbnailFile) {
+      setShowUploadDialogTitle("Upload Banner")
       requestHandler({
         url: "/get-signed-url",
         method: "POST",
@@ -129,7 +129,7 @@ export default function VideoUploadPage() {
         workspaceId }: any) => {
 
 
-
+        setShowUploadDialogTitle("Upload Video")
 
         // Video Upload
         requestHandler({
@@ -153,47 +153,12 @@ export default function VideoUploadPage() {
             })
 
             setShowUploadDialog(false)
+            applyToast("Success", "Video Uploaded")
             rotuer.push('/dashboard')
           }
         })
       }
     })
-
-
-    // try {
-    //   const { data } = await axios.post("/api/v1/video/upload", {
-    //     commitMessage: "Init Video",
-    //     branch: form.branch,
-    //     workspace: form.workspace,
-    //     contentType: form.videoFile.type,
-    //     isPrivate: isPrivate,
-    //   })
-
-    //   const uploadUrl: string | undefined = data?.result?.uploadUrl
-    //   if (!uploadUrl) throw new Error("No upload URL returned")
-
-    //   await axios.put(uploadUrl, form.videoFile, {
-    //     headers: { "Content-Type": form.videoFile.type },
-    //     onUploadProgress: (evt) => {
-    //       const total = evt.total || form.videoFile?.size || 0
-    //       const loaded = evt.loaded || 0
-    //       const percent = total ? Math.round((loaded / total) * 100) : 0
-    //       setUploadProgress(percent)
-    //     },
-    //   })
-
-    //   // Optionally upload thumbnail if present (example placeholder; depends on your backend)
-    //   // if (form.thumbnailFile) { ... }
-
-    //   setUploadProgress(100)
-    // } catch (err) {
-    //   console.error("[v0] Upload error:", err)
-    //   // keep dialog open to show current progress state; could add toast if project uses it
-    // } finally {
-    //   setIsUploading(false)
-    //   // keep dialog visible briefly so users see completion; close after short delay
-    //   setTimeout(() => setShowUploadDialog(false), 600)
-    // }
   }
 
   return (
@@ -250,60 +215,61 @@ export default function VideoUploadPage() {
                 </div>
               </CardHeader>
 
-              <CardContent className="space-y-6">
+              <CardContent>
                 {/* STEP 1: Details (workspace + branch) */}
                 {step === 1 && (
                   <div className="space-y-4 transition-all duration-300">
-                    <div className="flex items-center justify-between rounded-lg bg-card/60 border border-border px-3 py-3">
-                      <div className="space-y-0.5">
-                        <div className="text-sm font-medium">Workspace Visibility</div>
-                        <div className="text-xs text-muted-foreground">
-                          {isPrivate ? "Private (only you can access)" : "Public (anyone with link can view)"}
+                    <div className="w-[50%] mx-auto space-y-2">
+                      <div className="flex items-center justify-between rounded-lg bg-card/60 border border-border px-3 py-3">
+                        <div className="space-y-0.5">
+                          <div className="text-sm font-medium">Workspace Visibility</div>
+                          <div className="text-xs text-muted-foreground">
+                            {isPrivate ? "Private (only you can access)" : "Public (anyone with link can view)"}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className={`text-xs ${isPrivate ? "text-foreground" : "text-muted-foreground"}`}>
+                            Public
+                          </span>
+                          <Switch checked={isPrivate} onCheckedChange={setIsPrivate} aria-label="Toggle visibility" />
+                          <span className={`text-xs ${!isPrivate ? "text-foreground" : "text-muted-foreground"}`}>
+                            Private
+                          </span>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className={`text-xs ${isPrivate ? "text-foreground" : "text-muted-foreground"}`}>
-                          Private
-                        </span>
-                        <Switch checked={isPrivate} onCheckedChange={setIsPrivate} aria-label="Toggle visibility" />
-                        <span className={`text-xs ${!isPrivate ? "text-foreground" : "text-muted-foreground"}`}>
-                          Public
-                        </span>
+
+                      {/* Workspace input follows the toggle as requested */}
+                      <div className="space-y-2">
+                        <Label htmlFor="workspace" className="text-sm font-medium">
+                          Workspace
+                        </Label>
+                        <Input
+                          id="workspace"
+                          type="text"
+                          placeholder="Enter your workspace ID"
+                          value={form.workspace}
+                          onChange={(e) => handleInput("workspace", e.target.value)}
+                          className="bg-input border-border focus:border-primary transition-colors hover:border-primary/50"
+                          required
+                        />
+                      </div>
+
+                      {/* Branch input */}
+                      <div className="space-y-2">
+                        <Label htmlFor="branch" className="text-sm font-medium">
+                          Branch
+                        </Label>
+                        <Input
+                          id="branch"
+                          type="text"
+                          placeholder="e.g. main or feature/video-edit"
+                          value={form.branch}
+                          onChange={(e) => handleInput("branch", e.target.value)}
+                          className="bg-input border-border focus:border-primary transition-colors hover:border-primary/50"
+                          required
+                        />
                       </div>
                     </div>
-
-                    {/* Workspace input follows the toggle as requested */}
-                    <div className="space-y-2">
-                      <Label htmlFor="workspace" className="text-sm font-medium">
-                        Workspace
-                      </Label>
-                      <Input
-                        id="workspace"
-                        type="text"
-                        placeholder="Enter your workspace ID"
-                        value={form.workspace}
-                        onChange={(e) => handleInput("workspace", e.target.value)}
-                        className="bg-input border-border focus:border-primary transition-colors hover:border-primary/50"
-                        required
-                      />
-                    </div>
-
-                    {/* Branch input */}
-                    <div className="space-y-2">
-                      <Label htmlFor="branch" className="text-sm font-medium">
-                        Branch
-                      </Label>
-                      <Input
-                        id="branch"
-                        type="text"
-                        placeholder="e.g. main or feature/video-edit"
-                        value={form.branch}
-                        onChange={(e) => handleInput("branch", e.target.value)}
-                        className="bg-input border-border focus:border-primary transition-colors hover:border-primary/50"
-                        required
-                      />
-                    </div>
-
                     <div className="flex items-center justify-end gap-2 pt-2">
                       <Button
                         type="button"
@@ -325,16 +291,22 @@ export default function VideoUploadPage() {
                     <div className="space-y-2">
                       <Label className="text-sm font-medium">Thumbnail/Banner (optional)</Label>
 
+                      {/* Hidden file input always present */}
+                      <input
+                        id="thumb-input"
+                        ref={thumbInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={handleThumbSelect}
+                        className="sr-only"
+                      />
+
+                      {/* If no preview, show upload area */}
                       {!thumbnailPreviewUrl && (
-                        <label className="w-full h-40 md:h-48 rounded-lg border border-dashed border-border grid place-content-center text-center cursor-pointer hover:border-primary/50 hover:bg-card/60 transition-colors">
-                          <input
-                            id="thumb-input"
-                            ref={thumbInputRef}
-                            type="file"
-                            accept="image/*"
-                            onChange={handleThumbSelect}
-                            className="sr-only"
-                          />
+                        <label
+                          htmlFor="thumb-input"
+                          className="w-full h-40 md:h-48 rounded-lg border border-dashed border-border grid place-content-center text-center cursor-pointer hover:border-primary/50 hover:bg-card/60 transition-colors"
+                        >
                           <div className="flex flex-col items-center gap-2">
                             <div className="size-10 rounded-full bg-muted/40 grid place-content-center">
                               <ImageIcon className="w-5 h-5 text-muted-foreground" />
@@ -345,21 +317,11 @@ export default function VideoUploadPage() {
                         </label>
                       )}
 
-                      {thumbError && <div className="text-xs text-destructive">{thumbError}</div>}
-
-                      {form.thumbnailFile && (
-                        <div className="text-xs text-muted-foreground flex items-center justify-between">
-                          <span className="truncate">{form.thumbnailFile.name}</span>
-                          <span>{formatFileSize(form.thumbnailFile.size)}</span>
-                        </div>
-                      )}
-
+                      {/* If preview exists */}
                       {thumbnailPreviewUrl && (
-                        <div className="mt-3 w-[40%] md:w-[30%] min-w-[180px] rounded-lg overflow-hidden border border-border bg-card/60 animate-modal-pop">
+                        <div className="mt-3 w-[80%] md:w-[50%] min-w-[40%] rounded-lg overflow-hidden border border-border bg-card/60 animate-modal-pop">
                           <img
-                            src={
-                              thumbnailPreviewUrl || "/placeholder.svg?height=320&width=568&query=thumbnail%20preview"
-                            }
+                            src={thumbnailPreviewUrl}
                             alt="Thumbnail preview"
                             className={`h-auto w-full object-cover aspect-video ${thumbLoaded ? "thumb-fade-in" : "opacity-0"}`}
                             onLoad={() => setThumbLoaded(true)}
@@ -384,9 +346,7 @@ export default function VideoUploadPage() {
                             type="button"
                             variant="outline"
                             className="border-border hover:border-primary/50 bg-transparent"
-                            onClick={() => {
-                              thumbInputRef.current?.click()
-                            }}
+                            onClick={() => thumbInputRef.current?.click()}
                           >
                             Replace
                           </Button>
@@ -402,6 +362,7 @@ export default function VideoUploadPage() {
                         </Button>
                       </div>
                     </div>
+
                   </div>
                 )}
 
@@ -474,10 +435,10 @@ export default function VideoUploadPage() {
       </section >
 
       {/* Upload progress dialog (matches signup's dialog pattern) */}
-      < Dialog open={showUploadDialog} >
+      <Dialog open={showUploadDialog} >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Uploading video</DialogTitle>
+            <DialogTitle>{showUploadDialogTitle}</DialogTitle>
             <DialogDescription>Your file is being uploaded to secure storage.</DialogDescription>
           </DialogHeader>
           <div className="space-y-3">

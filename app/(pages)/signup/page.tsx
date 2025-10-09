@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-// import { useToast } from "@/hooks/use-toast"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Progress } from "@/components/ui/progress"
 
@@ -25,7 +24,7 @@ import { useRouter } from "next/navigation"
 import axios from "axios"
 import { useUser } from "@/context/user-context"
 import { requestHandler } from "@/lib/requestHandler"
-import { toast } from "sonner"
+import { applyToast } from "@/lib/toast"
 
 export default function Signup() {
   const { setUser } = useUser()
@@ -85,7 +84,7 @@ export default function Signup() {
 
     // Doing Validation
     if (formData.password != formData.confirmPassword) {
-      toast.warning("Passwords Not Match")
+      applyToast('Error', 'Passwords Not Match')
       setIsLoading(false)
       return;
     }
@@ -99,7 +98,7 @@ export default function Signup() {
 
           // Username Exists
           if (isUsernameExist) {
-            toast.warning("Username already exists")
+            applyToast('Error', "Username already exists")
             setIsLoading(false)
             return;
           }
@@ -127,7 +126,7 @@ export default function Signup() {
             },
             action: ({ user }: any) => {
               setUser(user)
-              toast.success("Signup Successfully !!")
+              applyToast('Success', "Signup Successfully !!")
               router.push('/dashboard')
             }
           })
