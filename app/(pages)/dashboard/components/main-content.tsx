@@ -41,14 +41,14 @@ export function MainContent({ activeTab }: MainContentProps) {
     return () => clearTimeout(timer)
   }, [activeTab])
 
-  // Fetch workspaces from backend
+  // Fetch workspaces
   useEffect(() => {
     const fetchWorkspaces = async () => {
       try {
         setIsLoading(true)
 
         user && requestHandler({
-          url: `/workspace/${user.id}`,
+          url: `/workspaces/users/${user.id}`,
           method: "GET",
           action: ({ workspaces }: any) => {
             setWorkspaces(workspaces)
@@ -171,7 +171,7 @@ export function MainContent({ activeTab }: MainContentProps) {
                 <div className="relative flex-shrink-0">
                   <div className="w-24 h-16 rounded-lg overflow-hidden bg-secondary/50 group-hover:ring-2 ring-primary/50 transition-all duration-300">
                     <img
-                      src={`http://localhost:1234/api/v1/get-image-content/banner/${ws.banner}` || "/placeholder.svg"}
+                      src={`http://localhost:1234/api/v1/storage/images/banner/${ws.banner}` || "/placeholder.svg"}
                       alt={`${ws.name} banner`}
                       className="w-full h-full object-cover"
                     />

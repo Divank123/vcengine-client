@@ -61,18 +61,8 @@ export default function VideoStudioPage() {
   useEffect(() => {
     ; (async () => {
       try {
-        if (!user) {
-          requestHandler({
-            url: "/auth/user",
-            method: "GET",
-            action: ({ user }: any) => {
-              setUser(user)
-            }
-          })
-        }
-
         requestHandler({
-          url: `/workspace/${user?.id}`,
+          url: `/workspaces/users/${user?.id}`,
           method: "GET",
           action: ({ workspaces }: any) => {
             console.log(workspaces);
@@ -125,7 +115,7 @@ export default function VideoStudioPage() {
       if (!maxResolutionMap[activeWorkspace.id]) {
         try {
           requestHandler({
-            url: `/video/max-resolution/${activeWorkspace.id}`,
+            url: `/videos/${activeWorkspace.id}/max-resolution`,
             method: 'GET',
             action: ({ maxResolution }: any) => {
               setMaxResolution(maxResolution)

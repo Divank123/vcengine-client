@@ -59,17 +59,6 @@ export default function Signup() {
     console.log("[v0] Google sign-in clicked")
   }
 
-  const onUsernameChange = (username: string) => {
-    requestHandler({
-      url: `/auth/unique-username/${username}`,
-      method: 'GET',
-      action: (d: any) => {
-        console.log(d);
-      }
-    })
-  }
-
-
   const handleInputChange = (field: keyof FormDataState, value: File | string) => {
     setFormData({
       ...formData,
@@ -92,7 +81,7 @@ export default function Signup() {
     try {
       // Check for username uniqueness
       requestHandler({
-        url: `/auth/unique-username/${formData.username}`,
+        url: `/auth/username-uniqueness/${formData.username}`,
         method: 'GET',
         action: async (isUsernameExist: any) => {
 
@@ -143,7 +132,7 @@ export default function Signup() {
     return new Promise(async (resolve, reject) => {
 
       requestHandler({
-        url: "/get-signed-url",
+        url: "/storage/signed-url",
         method: "POST",
         body: {
           contentType: formData.selectedFile?.type,

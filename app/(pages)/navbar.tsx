@@ -23,7 +23,7 @@ export function MainNavbar() {
     const [searchFocused, setSearchFocused] = useState(false)
     useEffect(() => {
         requestHandler({
-            url: '/auth/user',
+            url: '/auth/me',
             method: "GET",
             action: ({ user }: any) => { console.log(user); setUser(user) }
         })
@@ -66,7 +66,7 @@ export function MainNavbar() {
                                 className="relative h-10 w-10 rounded-full hover:ring-2 hover:ring-primary/20 transition-all duration-300"
                             >
                                 <Avatar className="h-10 w-10">
-                                    <AvatarImage src={`http://localhost:1234/api/v1/get-image-content/avatar/${user?.avatar}`} alt="Profile" />
+                                    <AvatarImage src={`http://localhost:1234/api/v1/storage/images/avatar/${user?.avatar}`} alt="Profile" />
                                     <AvatarFallback>{user?.username.charAt(0).toUpperCase()}</AvatarFallback>
                                 </Avatar>
                             </Button>
@@ -74,7 +74,7 @@ export function MainNavbar() {
                         <DropdownMenuContent className="w-64 animate-scale-in" align="end">
                             <div className="flex items-center space-x-3 p-3 border-b border-border">
                                 <Avatar className="h-12 w-12" onClick={() => router.push('/dashboard')}>
-                                    <AvatarImage src={`http://localhost:1234/api/v1/get-image-content/avatar/${user?.avatar}`} alt="Profile" />
+                                    <AvatarImage src={`http://localhost:1234/api/v1/storage/images/avatar/${user?.avatar}`} alt="Profile" />
                                     <AvatarFallback>{user?.username.charAt(0).toUpperCase()}</AvatarFallback>
                                 </Avatar>
                                 <div>

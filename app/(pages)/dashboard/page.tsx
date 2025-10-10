@@ -25,26 +25,13 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const fetchUser = async () => {
-      if (!user) {
-        requestHandler({
-          url: "/auth/user",
-          method: "GET",
-          action: ({ user }: any) => {
-            console.log(user);
-            setUser(user)
-          }
-        })
-      }
-      else {
-        setProfile(prev => {
-          return {
-            ...prev,
-            username: user.username!,
-            profileImage: `http://localhost:1234/api/v1/get-image-content/avatar/${user.avatar}`
-          };
-        });
-      }
-
+      setProfile(prev => {
+        return {
+          ...prev,
+          username: user?.username!,
+          profileImage: `http://localhost:1234/api/v1/storage/images/avatar/${user?.avatar}`
+        };
+      });
     }
     fetchUser()
   }, [user, setUser])

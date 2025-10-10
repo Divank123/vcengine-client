@@ -92,7 +92,7 @@ export default function VideoUploadPage() {
     if (form.thumbnailFile) {
       setShowUploadDialogTitle("Upload Banner")
       requestHandler({
-        url: "/get-signed-url",
+        url: "/storage/signed-url",
         method: "POST",
         body: {
           contentType: form.thumbnailFile?.type,
@@ -117,7 +117,7 @@ export default function VideoUploadPage() {
 
     // Workspace & Branch Create
     requestHandler({
-      url: "/workspace",
+      url: "/workspaces",
       method: "POST",
       body: {
         name: form.workspace,
@@ -133,7 +133,7 @@ export default function VideoUploadPage() {
 
         // Video Upload
         requestHandler({
-          url: "/video/upload",
+          url: "/videos/upload",
           method: 'POST',
           body: {
             contentType: form.videoFile?.type,
