@@ -4,9 +4,7 @@ import { useEffect, useState } from "react"
 import { ProfileNavbar } from "./components/profile-navbar"
 import { ProfileSidebar } from "./components/profile-sidebar"
 import { MainContent } from "./components/main-content"
-import axios from "axios"
 import { useUser } from "@/context/user-context"
-import { requestHandler } from "@/lib/requestHandler"
 
 export default function DashboardPage() {
 
@@ -28,7 +26,7 @@ export default function DashboardPage() {
       setProfile(prev => {
         return {
           ...prev,
-          username: user?.username!,
+          username: user?.username,
           profileImage: `http://localhost:1234/api/v1/storage/images/avatar/${user?.avatar}`
         };
       });
@@ -62,7 +60,7 @@ export default function DashboardPage() {
       <div className="flex relative z-10">
         {/* Profile Sidebar - 30% width */}
         <div className="w-[30%] min-w-[320px] p-6 border-r border-border">
-          <ProfileSidebar profileData={profile} onProfileSave={handleProfileSave} />
+          {/* <ProfileSidebar profileData={profile} onProfileSave={handleProfileSave} /> */}
         </div>
 
         {/* Main Content - 70% width */}

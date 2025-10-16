@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { EditProfileDialog } from "./edit-profile-dialog"
 
 interface ProfileSidebarProps {
-  profileData: {
+  profileData?: {
     username: string
     email: string
     description: string
@@ -33,27 +33,27 @@ export function ProfileSidebar({ profileData, onProfileSave }: ProfileSidebarPro
         <CardContent className="p-6">
           <div className="flex flex-col items-center text-center space-y-4">
             <Avatar className="h-24 w-24 ring-4 ring-primary/20 hover:ring-primary/40 transition-all duration-300">
-              <AvatarImage src={profileData.profileImage || "/developer-avatar.png"} alt="Profile" />
+              <AvatarImage src={profileData?.profileImage || "/developer-avatar.png"} alt="Profile" />
               <AvatarFallback className="text-2xl bg-secondary text-secondary-foreground">
-                {profileData.username.charAt(0).toUpperCase()}
+                {profileData?.username?.charAt(0).toUpperCase()}
               </AvatarFallback>
             </Avatar>
 
             <div className="space-y-2">
-              <h2 className="text-xl font-bold text-foreground">{profileData.username}</h2>
-              <p className="text-muted-foreground">{profileData.email}</p>
+              <h2 className="text-xl font-bold text-foreground">{profileData?.username}</h2>
+              <p className="text-muted-foreground">{profileData?.email}</p>
             </div>
 
-            <EditProfileDialog initialData={profileData} onSave={onProfileSave}>
-              <Button
-                variant="outline"
-                disabled
-                className="w-full hover:bg-primary hover:text-primary-foreground transition-all duration-300 bg-card border-primary/50 text-primary hover:border-primary hover-lift"
-              >
-                <span className="mr-2">✏️</span>
-                Edit Profile
-              </Button>
-            </EditProfileDialog>
+            {/* <EditProfileDialog initialData={profileData} onSave={onProfileSave}> */}
+            <Button
+              variant="outline"
+              disabled
+              className="w-full hover:bg-primary hover:text-primary-foreground transition-all duration-300 bg-card border-primary/50 text-primary hover:border-primary hover-lift"
+            >
+              <span className="mr-2">✏️</span>
+              Edit Profile
+            </Button>
+            {/* </EditProfileDialog> */}
           </div>
         </CardContent>
       </Card>
@@ -64,16 +64,16 @@ export function ProfileSidebar({ profileData, onProfileSave }: ProfileSidebarPro
           <CardTitle className="text-lg text-foreground">About</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <p className="text-sm text-muted-foreground leading-relaxed">{profileData.description}</p>
+          <p className="text-sm text-muted-foreground leading-relaxed">{profileData?.description}</p>
 
           <div className="space-y-2 text-sm">
             <div className="flex items-center space-x-2 text-muted-foreground hover:text-foreground transition-colors">
               <MapPin className="w-4 h-4" />
-              <span>{profileData.location}</span>
+              <span>{profileData?.location}</span>
             </div>
             <div className="flex items-center space-x-2 text-muted-foreground hover:text-primary transition-colors">
               <LinkIcon className="w-4 h-4" />
-              <span className="text-primary hover:underline cursor-pointer">{profileData.website}</span>
+              <span className="text-primary hover:underline cursor-pointer">{profileData?.website}</span>
             </div>
             <div className="flex items-center space-x-2 text-muted-foreground hover:text-foreground transition-colors">
               <Calendar className="w-4 h-4" />
@@ -110,6 +110,6 @@ export function ProfileSidebar({ profileData, onProfileSave }: ProfileSidebarPro
           </div>
         </CardContent>
       </Card>
-    </div>
+    </div >
   )
 }

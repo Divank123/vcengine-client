@@ -31,7 +31,7 @@ export function ProfileNavbar({ activeTab, onTabChange, profileData, onEditProfi
         <div className="flex items-center space-x-4 mb-6">
           <Avatar className="h-16 w-16 ring-2 ring-primary/20 hover:ring-primary/40 transition-all duration-300">
             <AvatarImage src={profileData.profileImage || "/developer-avatar.png"} alt="Profile" />
-            <AvatarFallback className="text-lg">{profileData.username.charAt(0).toUpperCase()}</AvatarFallback>
+            {/* <AvatarFallback className="text-lg">{profileData.username.charAt(0).toUpperCase()}</AvatarFallback> */}
           </Avatar>
           <div className="flex-1">
             <div className="flex items-center gap-3">

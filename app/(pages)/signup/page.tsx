@@ -81,7 +81,7 @@ export default function Signup() {
     try {
       // Check for username uniqueness
       requestHandler({
-        url: `/auth/username-uniqueness/${formData.username}`,
+        url: `/auth/username/uniqueness/${formData.username}`,
         method: 'GET',
         action: async (isUsernameExist: any) => {
 

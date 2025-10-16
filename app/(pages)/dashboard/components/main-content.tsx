@@ -66,7 +66,6 @@ export function MainContent({ activeTab }: MainContentProps) {
 
   }, [user])
 
-  // Derived datasets from fetched workspaces
   const allRepositories: Workspace[] = workspaces
 
   const starredRepositories: Workspace[] = []
@@ -91,38 +90,6 @@ export function MainContent({ activeTab }: MainContentProps) {
       )
       }
 
-      {/* Recent Activity */}
-      {/* <div>
-        <h3 className="text-lg font-semibold mb-4 flex items-center text-foreground">
-          <Calendar className="w-5 h-5 mr-2 text-primary" />
-          Recent Activity
-        </h3>
-        <Card className="hover:shadow-lg hover:shadow-primary/10 transition-all duration-300 bg-card border-border">
-          <CardContent className="p-4">
-            <div className="space-y-4">
-              {[
-                { action: "Created", repo: "E-commerce Platform", time: "2 hours ago" },
-                { action: "Starred", repo: "React Query", time: "1 day ago" },
-                { action: "Forked", repo: "Tailwind CSS", time: "3 days ago" },
-                { action: "Updated", repo: "AI Chat Bot", time: "1 week ago" },
-              ].map((activity, index) => (
-                <div
-                  key={index}
-                  className="flex items-center justify-between py-2 border-b border-border last:border-0"
-                >
-                  <div className="flex items-center space-x-3">
-                    <div className="w-2 h-2 rounded-full bg-primary"></div>
-                    <span className="text-sm text-foreground">
-                      <span className="font-medium">{activity.action}</span> {activity.repo}
-                    </span>
-                  </div>
-                  <span className="text-xs text-muted-foreground">{activity.time}</span>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div> */}
     </div >
   )
 
@@ -159,7 +126,7 @@ export function MainContent({ activeTab }: MainContentProps) {
         {workspaces.map((ws, index) => (
           <Card
             onClick={() => {
-              router.push(`/video-player`)
+              router.push(`/workspace/${ws.id}`)
             }}
             key={(ws as any).id ?? ws.name}
             className="hover:shadow-lg hover:shadow-primary/10 transition-all duration-300 hover:scale-[1.01] cursor-pointer group bg-card border-border"

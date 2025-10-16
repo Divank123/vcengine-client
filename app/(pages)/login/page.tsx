@@ -12,6 +12,14 @@ import { useRouter } from "next/navigation"
 import { useUser } from "@/context/user-context"
 import { requestHandler } from "@/lib/requestHandler"
 import { applyToast } from "@/lib/toast"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog"
 
 export default function Login() {
   const router = useRouter()
@@ -21,30 +29,50 @@ export default function Login() {
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
 
+  const [forgotOpen, setForgotOpen] = useState(false)
+  const [forgotEmail, setForgotEmail] = useState("")
+  const [isResetLoading, setIsResetLoading] = useState(false)
+
   const handleGoogleSignIn = async () => {
     console.log("[v0] Google sign-in clicked")
+  }
+
+  const handleResetSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsResetLoading(true)
+
+    requestHandler({
+      url: "/auth/password/request",
+      method: "POST",
+      body: { email: forgotEmail },
+      action: ({ message }: any) => {
+        applyToast("Success", message)
+        setForgotOpen(false)
+      },
+    }).finally(() => setIsResetLoading(false))
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
 
-    if (!email || !password) { throw new Error("Fill up all fields") }
-
+    if (!email || !password) {
+      throw new Error("Fill up all fields")
+    }
 
     requestHandler({
       url: "/auth/login",
       method: "POST",
       body: {
-        email, password
+        email,
+        password,
       },
       action: ({ user }: any) => {
         setUser(user)
         applyToast("Success", "Login Success !!")
-        router.push('/dashboard')
-      }
-    })
-      .finally(() => setIsLoading(false))
+        router.push("/dashboard")
+      },
+    }).finally(() => setIsLoading(false))
   }
 
   return (
@@ -68,7 +96,9 @@ export default function Login() {
         <div className="flex items-center gap-4">
           <Button
             variant="outline"
-            onClick={() => { router.push("/signup") }}
+            onClick={() => {
+              router.push("/signup")
+            }}
             className="relative group border-border hover:border-primary/50 bg-transparent hover:bg-transparent transition-all duration-300"
           >
             <span className="relative z-10 group-hover:text-primary transition-colors">Sign Up</span>
@@ -174,9 +204,15 @@ export default function Login() {
                 </div>
 
                 <div className="text-right">
-                  <a href="#" className="text-xs text-primary hover:underline">
+                  <div
+                    className="text-xs text-primary hover:underline cursor-pointer"
+                    onClick={() => {
+                      setForgotEmail(email) // prefill with current email if typed
+                      setForgotOpen(true)
+                    }}
+                  >
                     Forgot password?
-                  </a>
+                  </div>
                 </div>
 
                 <Button
@@ -205,19 +241,16 @@ export default function Login() {
         {/* Right: Hero */}
         <div className="flex items-center justify-center">
           <div className="max-w-2xl space-y-6">
-            <Badge className="bg-primary/10 text-primary border-primary/30">
-              Video Versioning • Space Saving
-            </Badge>
+            <Badge className="bg-primary/10 text-primary border-primary/30">Video Versioning • Space Saving</Badge>
 
             <h1 className="text-4xl md:text-5xl font-bold leading-tight">
-              Version every edit. Save space.{" "}
-              <span className="text-primary">Ship faster.</span>
+              Version every edit. Save space. <span className="text-primary">Ship faster.</span>
             </h1>
 
             <p className="text-lg text-muted-foreground">
-              CinemaStudio Versioning stores only the changes between edits using delta compression.
-              Keep hundreds of revisions without blowing up your storage. Roll back instantly,
-              branch experiments, and sync across devices with smart deduplication.
+              CinemaStudio Versioning stores only the changes between edits using delta compression. Keep hundreds of
+              revisions without blowing up your storage. Roll back instantly, branch experiments, and sync across
+              devices with smart deduplication.
             </p>
 
             <div className="grid grid-cols-2 gap-4">
@@ -229,6 +262,41 @@ export default function Login() {
           </div>
         </div>
       </section>
+
+      <Dialog open={forgotOpen} onOpenChange={setForgotOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Reset your password</DialogTitle>
+            <DialogDescription>
+              Enter the email associated with your account. We&apos;ll send you a link to reset your password.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleResetSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="forgot-email">Email Address</Label>
+              <Input
+                id="forgot-email"
+                type="email"
+                placeholder="you@example.com"
+                value={forgotEmail}
+                onChange={(e) => setForgotEmail(e.target.value)}
+                required
+                className="bg-input border-border focus:border-primary transition-colors"
+              />
+            </div>
+
+            <DialogFooter className="gap-2">
+              <Button type="button" variant="outline" onClick={() => setForgotOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isResetLoading}>
+                {isResetLoading ? "Sending..." : "Send reset link"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </main>
   )
 }

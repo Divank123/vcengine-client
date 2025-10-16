@@ -86,79 +86,96 @@ export default function VideoUploadPage() {
     setUploadProgress(0)
     setShowUploadDialog(true)
 
-    let bannerKey: string | null = null
+    try {
+      let bannerKey: string | undefined = undefined
 
-    // Thumbnail Upload
-    if (form.thumbnailFile) {
-      setShowUploadDialogTitle("Upload Banner")
-      requestHandler({
-        url: "/storage/signed-url",
-        method: "POST",
-        body: {
-          contentType: form.thumbnailFile?.type,
-          type: "banner",
-        },
-        action: async ({ uploadUrl, fileKey }: any) => {
-          await axios.put(uploadUrl, form.thumbnailFile, {
-            headers: {
-              "Content-Type": form.thumbnailFile?.type,
-            },
-            onUploadProgress: (evt) => {
-              if (!evt.total) return
-              const percent = Math.round((evt.loaded / evt.total) * 100)
-              setUploadProgress(percent)
-            },
-          })
+      // Thumbnail Upload
+      if (form.thumbnailFile) {
+        setShowUploadDialogTitle("Upload Banner")
+        setUploadProgress(0)
 
-          bannerKey = fileKey
-        }
-      })
-    }
-
-    // Workspace & Branch Create
-    requestHandler({
-      url: "/workspaces",
-      method: "POST",
-      body: {
-        name: form.workspace,
-        branchName: form.branch,
-        type: isPrivate ? "Private" : "Public",
-        banner: bannerKey
-      },
-      action: ({ branchId,
-        workspaceId }: any) => {
-
-
-        setShowUploadDialogTitle("Upload Video")
-
-        // Video Upload
-        requestHandler({
-          url: "/videos/upload",
-          method: 'POST',
+        await requestHandler({
+          url: "/storage/signed-url",
+          method: "POST",
           body: {
-            contentType: form.videoFile?.type,
-            commitMessage: "init",
-            workspace: workspaceId,
-            branch: branchId,
+            contentType: form.thumbnailFile?.type,
+            type: "banner",
           },
-          action: async ({ uploadUrl }: any) => {
-            await axios.put(uploadUrl, form.videoFile, {
-              headers: { "Content-Type": form.videoFile?.type },
+          action: async ({ uploadUrl, fileKey }: any) => {
+            await axios.put(uploadUrl, form.thumbnailFile, {
+              headers: { "Content-Type": form.thumbnailFile?.type },
               onUploadProgress: (evt) => {
-                const total = evt.total || form.videoFile?.size || 0
-                const loaded = evt.loaded || 0
-                const percent = total ? Math.round((loaded / total) * 100) : 0
+                if (!evt.total) return
+                const percent = Math.round((evt.loaded / evt.total) * 100)
                 setUploadProgress(percent)
               },
+            }).catch(() => {
+              throw new Error()
             })
-
-            setShowUploadDialog(false)
-            applyToast("Success", "Video Uploaded")
-            rotuer.push('/dashboard')
+            bannerKey = fileKey
+            setUploadProgress(100) // ensure it reaches 100%
           }
         })
       }
-    })
+
+      // --------------------------------------------------------------------------------
+      //  Check workspacce uniqueness before creating one
+      // --------------------------------------------------------------------------------
+
+      // Workspace & Branch Create
+      await requestHandler({
+        url: "/workspaces",
+        method: "POST",
+        body: {
+          name: form.workspace,
+          branchName: form.branch,
+          type: isPrivate ? "Private" : "Public",
+          banner: bannerKey,
+        },
+        action: async ({ branchId, workspaceId }: any) => {
+          console.log({ branchId, workspaceId })
+
+          // Reset for video upload
+          setUploadProgress(0)
+          setShowUploadDialogTitle("Upload Video")
+
+          // Video Upload
+          await requestHandler({
+            url: "/videos/upload",
+            method: "POST",
+            body: {
+              contentType: form.videoFile?.type,
+              commitMessage: "init",
+              workspace: workspaceId,
+              branch: branchId,
+            },
+            action: async ({ uploadUrl }: any) => {
+              await axios.put(uploadUrl, form.videoFile, {
+                headers: { "Content-Type": form.videoFile?.type },
+                onUploadProgress: (evt) => {
+                  const total = evt.total || form.videoFile?.size || 0
+                  const loaded = evt.loaded || 0
+                  const percent = total ? Math.round((loaded / total) * 100) : 0
+                  setUploadProgress(percent)
+                },
+              })
+
+              setUploadProgress(100) // ensure video reaches 100%
+              setShowUploadDialog(false)
+              applyToast("Success", "Video Uploaded !!")
+              rotuer.push("/dashboard")
+            },
+          }).catch(() => {
+            throw new Error()
+          })
+        },
+      }).catch(() => {
+        throw new Error()
+      })
+      setIsUploading(false)
+    } catch (error) {
+      applyToast("Error", "Uploading Failed !!")
+    }
   }
 
   return (
